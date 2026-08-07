@@ -25,13 +25,15 @@ TODO: confirm this stays accurate once auth and data layers are actually wired u
 - **ORM:** Prisma Client
 ---
 ## 3. Data Model
-TODO: replace with the finalized `schema.prisma` once built. Working draft below.
-- **User** — id, email, name, avatar, guest flag, theme prefs
-- **Project** — id, name, priority, lead, dueDate
-- **Task** — id, title, description, status (`BACKLOG` / `TODO` / `DOING` / `COMPLETED` / `ON_HOLD`), priority (`NO_PRIORITY` / `URGENT` / `HIGH` / `MEDIUM` / `LOW`), assignees, dates, projectId (nullable), labels
-- **Subtask** — same core fields as Task, parentTaskId
+Implemented in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma). Summary below — treat the schema file as the source of truth if these ever drift.
+- **User** — id, email, name, avatar, isGuest, theme, accentColor
+- **Project** — id, name, priority, leadId (→ User, nullable), dueDate
+- **Task** — id, title, description, status (`BACKLOG` / `TODO` / `DOING` / `COMPLETED` / `ON_HOLD`), priority (`NO_PRIORITY` / `URGENT` / `HIGH` / `MEDIUM` / `LOW`), assignees (↔ User, many-to-many), startDate, dueDate, projectId (nullable), labels (↔ Label, many-to-many)
+- **Subtask** — same core fields as Task, parentTaskId (→ Task, cascade delete)
 - **Comment** — taskId, authorId, body, createdAt
-- **Label** — name (seeded: Research, Design, Development, Testing, Deployment)
+- **Label** — name (unique; seeded via [`backend/prisma/seed.ts`](backend/prisma/seed.ts): Research, Design, Development, Testing, Deployment)
+
+No migrations have been run against a real database yet (schema is validated and the client generates cleanly). `prisma migrate dev` runs once a `DATABASE_URL` is provisioned.
 ---
 ## 4. Data Flow & Communication
 ### API Communication

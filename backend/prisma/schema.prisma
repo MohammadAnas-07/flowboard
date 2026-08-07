@@ -1,0 +1,123 @@
+// Prisma schema for Flowboard
+// Mirrors Section 3 (Data Model) of /architecture.md — keep both in sync.
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  BACKLOG
+  TODO
+  DOING
+  COMPLETED
+  ON_HOLD
+}
+
+enum Priority {
+  NO_PRIORITY
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String?
+  avatar      String?
+  isGuest     Boolean  @default(false)
+  theme       String?  @default("system")
+  accentColor String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projectsLed   Project[] @relation("ProjectLead")
+  assignedTasks Task[]    @relation("TaskAssignees")
+  comments      Comment[]
+
+  @@map("users")
+}
+
+model Project {
+  id        String    @id @default(uuid())
+  name      String
+  priority  Priority  @default(NO_PRIORITY)
+  leadId    String?
+  lead      User?     @relation("ProjectLead", fields: [leadId], references: [id])
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tasks Task[]
+
+  @@map("projects")
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  status      Status    @default(BACKLOG)
+  priority    Priority  @default(NO_PRIORITY)
+  startDate   DateTime?
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  assignees User[]    @relation("TaskAssignees")
+  labels    Label[]   @relation("TaskLabels")
+  subtasks  Subtask[]
+  comments  Comment[]
+
+  @@map("tasks")
+}
+
+model Subtask {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  status      Status    @default(BACKLOG)
+  priority    Priority  @default(NO_PRIORITY)
+  startDate   DateTime?
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  parentTaskId String
+  parentTask   Task   @relation(fields: [parentTaskId], references: [id], onDelete: Cascade)
+
+  @@map("subtasks")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  taskId   String
+  task     Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
+}
+
+// Seeded values: Research, Design, Development, Testing, Deployment
+model Label {
+  id   String @id @default(uuid())
+  name String @unique
+
+  tasks Task[] @relation("TaskLabels")
+
+  @@map("labels")
+}
