@@ -14,15 +14,16 @@ TODO: confirm this stays accurate once auth and data layers are actually wired u
 - **Styling:** Tailwind CSS
 - **State/Fetching:** TODO — decide and document (React Context, or a fetch/query library)
 - **Theming:** Two independent axes — light/dark mode and accent color — persisted via `localStorage`, read pre-hydration to avoid flash of wrong theme
-- **Deployment:** Vercel
+- **Deployment:** Vercel — https://flowboard-zeta-eight.vercel.app
 ### Server (Backend)
 - **Framework:** NestJS, TypeScript
 - **Validation:** `class-validator` + `class-transformer` DTOs on every route
 - **Auth:** JWT in `httpOnly` cookie, guard applied globally except guest-login and health check
-- **Deployment:** TODO — Render / Railway
+- **Deployment:** Render — https://flowboard-api-9074.onrender.com (`/health` confirmed live)
 ### Database Layer
 - **Database:** PostgreSQL
 - **ORM:** Prisma Client
+- **Hosting:** Neon (serverless Postgres, permanent free tier — chosen over Render's managed Postgres, whose free tier expires 30 days after creation and wouldn't survive the assessment's review window)
 ---
 ## 3. Data Model
 Implemented in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma). Summary below — treat the schema file as the source of truth if these ever drift.
@@ -51,12 +52,12 @@ flowchart TD
     subgraph Frontend [Vercel]
         Next[Next.js App Router]
     end
-    subgraph Backend [Render / Railway]
+    subgraph Backend [Render]
         API[NestJS REST API]
         Guard[Auth Guard - JWT]
         Prisma[Prisma Client]
     end
-    subgraph Storage
+    subgraph Storage [Neon]
         DB[(PostgreSQL)]
     end
     Next <-->|HTTPS / REST, httpOnly cookie| API
