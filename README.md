@@ -2,6 +2,8 @@
 
 A task and project board built for the AbleSpace Full Stack Developer (Fresher) technical assessment. Create projects, add tasks with a status and priority, drag them across a Kanban board or work from a list view, break tasks into subtasks, comment on them, and filter the list/board by status or priority.
 
+This repo is Part 1 (the build). Part 2 is the product-understanding submission, not written yet. It'll be linked here once it exists, either as a `PART2.md` in this repo or a Google Doc/video link.
+
 ## Live demo
 
 - App: https://flowboard-zeta-eight.vercel.app
@@ -43,6 +45,18 @@ npm run dev   # http://localhost:3000
 
 Open `http://localhost:3000` and click "Continue as Guest."
 
+## Running tests
+
+Backend only, frontend has no test suite (see architecture.md's Known Limitations).
+
+```bash
+cd backend
+npm test        # unit tests: DTO validation, AuthGuard
+npm run test:e2e  # single e2e smoke test against a real Nest app instance
+```
+
+Most of the suite is real: `class-validator` DTO tests for `CreateTaskDto` (accepts valid payloads, rejects bad enums/UUIDs/dates), and `AuthGuard` tests covering the public-route bypass, missing cookie, invalid JWT, and deleted-user cases, with `JwtService`/`PrismaService` mocked so nothing touches a real database. `app.controller.spec.ts` and `test/app.e2e-spec.ts` are still the two files `nest generate` scaffolds by default, testing the placeholder root route rather than anything Flowboard-specific, left in place since they still pass and cost nothing to keep.
+
 ## Folder structure
 
 Real tree of the tracked repo, `node_modules`/build output excluded:
@@ -65,6 +79,7 @@ Real tree of the tracked repo, `node_modules`/build output excluded:
 │   │   │   ├── decorators
 │   │   │   │   └── current-user.decorator.ts
 │   │   │   ├── guards
+│   │   │   │   ├── auth.guard.spec.ts
 │   │   │   │   └── auth.guard.ts
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── auth.module.ts
@@ -105,6 +120,7 @@ Real tree of the tracked repo, `node_modules`/build output excluded:
 │   │   │   └── subtasks.service.ts
 │   │   ├── tasks
 │   │   │   ├── dto
+│   │   │   │   ├── create-task.dto.spec.ts
 │   │   │   │   ├── create-task.dto.ts
 │   │   │   │   ├── move-task-status.dto.ts
 │   │   │   │   ├── query-task.dto.ts
@@ -155,6 +171,7 @@ Real tree of the tracked repo, `node_modules`/build output excluded:
 │   │   └── proxy.ts                       # Next 16's middleware, redirect-only auth check
 │   └── (config: .env.example, package.json, tsconfig.json, next.config.ts, eslint.config.mjs, postcss.config.mjs)
 ├── architecture.md
+├── LICENSE
 ├── README.md
 └── render.yaml
 ```
@@ -162,3 +179,7 @@ Real tree of the tracked repo, `node_modules`/build output excluded:
 `backend/src` is organized by feature module (`tasks`, `projects`, `subtasks`, `comments`, `labels`, `auth`), each with its own controller, service, and DTOs, the structure `nest generate` produces. `frontend/src/app` uses two route groups: `(app)` is the authenticated shell with the main sidebar, `(settings)` is the standalone settings page, split out so it can have its own "Back to app" nav instead of inheriting the main one. `frontend/src/components/shared` holds the pieces reused across features (the data table backs the task list, project list, and subtasks table; the dropdown primitives back the Fields filter, label picker, and status/priority pickers), rather than each feature building its own copy.
 
 See [architecture.md](architecture.md) for the data model, the full API reference, and the deviations from the original Figma design.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
