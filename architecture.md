@@ -26,15 +26,15 @@ TODO: confirm this stays accurate once auth and data layers are actually wired u
 - **Hosting:** Neon (serverless Postgres, permanent free tier — chosen over Render's managed Postgres, whose free tier expires 30 days after creation and wouldn't survive the assessment's review window)
 ---
 ## 3. Data Model
-Implemented in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma). Summary below — treat the schema file as the source of truth if these ever drift.
+Implemented in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma). Summary below — treat the schema file as the source of truth if these ever drift. Migrated and live against the Neon database.
 - **User** — id, email, name, avatar, isGuest, theme, accentColor
 - **Project** — id, name, priority, leadId (→ User, nullable), dueDate
 - **Task** — id, title, description, status (`BACKLOG` / `TODO` / `DOING` / `COMPLETED` / `ON_HOLD`), priority (`NO_PRIORITY` / `URGENT` / `HIGH` / `MEDIUM` / `LOW`), assignees (↔ User, many-to-many), startDate, dueDate, projectId (nullable), labels (↔ Label, many-to-many)
-- **Subtask** — same core fields as Task, parentTaskId (→ Task, cascade delete)
+- **Subtask** — same core fields as Task (including assignees, i.e. members — added after the initial draft, since the plan called for member support here too), parentTaskId (→ Task, cascade delete)
 - **Comment** — taskId, authorId, body, createdAt
-- **Label** — name (unique; seeded via [`backend/prisma/seed.ts`](backend/prisma/seed.ts): Research, Design, Development, Testing, Deployment)
+- **Label** — name (unique; seeded via [`backend/prisma/seed.ts`](backend/prisma/seed.ts): Research, Design, Development, Testing, Deployment — confirmed live in the Neon database)
 
-No migrations have been run against a real database yet (schema is validated and the client generates cleanly). `prisma migrate dev` runs once a `DATABASE_URL` is provisioned.
+Every route below runs through the global `AuthGuard` (Section 4) — all task/project data requires an authenticated session. DTOs use `class-validator` (enum checks on `status`/`priority`, string length limits, required-field checks) and reject invalid input with `400` before it reaches Prisma; foreign-key violations (bad `projectId`/`assigneeIds`/`labelIds`/`leadId`) are also caught and returned as clean `400`s rather than raw Prisma errors.
 ---
 ## 4. Data Flow & Communication
 ### API Communication
@@ -68,19 +68,61 @@ flowchart TD
 TODO: this diagram is intentionally minimal for the skeleton stage — expand if any external services (e.g. file storage, email) get added.
 ---
 ## 6. API Reference
-TODO: fill in as each module is built. Keep this table accurate — it's the fastest way for an evaluator to understand scope without reading every controller. "Status" reflects what's actually deployed, not the plan.
+Keep this table accurate — it's the fastest way for an evaluator to understand scope without reading every controller. "Status" reflects what's actually deployed, not the plan.
+
+### Auth
 | Method | Path | Description | Auth | Status |
 |--------|------|-------------|------|--------|
 | POST | `/api/auth/guest` | Find-or-create the demo user, set session cookie | No | ✅ Implemented |
 | POST | `/api/auth/logout` | Clear session cookie | No | ✅ Implemented |
 | GET | `/api/auth/me` | Get current user from the session cookie | Cookie | ✅ Implemented |
-| GET | `/api/projects` | List projects | ✅ | TODO |
-| POST | `/api/projects` | Create project | ✅ | TODO |
-| GET | `/api/projects/:id/tasks` | List tasks grouped by status | ✅ | TODO |
-| POST | `/api/projects/:id/tasks` | Create task | ✅ | TODO |
-| PATCH | `/api/tasks/:id` | Update task (incl. status move) | ✅ | TODO |
-| POST | `/api/tasks/:id/subtasks` | Add subtask | ✅ | TODO |
-| POST | `/api/tasks/:id/comments` | Add comment | ✅ | TODO |
+
+### Projects
+| Method | Path | Description | Auth | Status |
+|--------|------|-------------|------|--------|
+| GET | `/api/projects` | List projects | Cookie | ✅ Implemented |
+| POST | `/api/projects` | Create project | Cookie | ✅ Implemented |
+| GET | `/api/projects/:id` | Get one project | Cookie | ✅ Implemented |
+| PATCH | `/api/projects/:id` | Update project | Cookie | ✅ Implemented |
+| DELETE | `/api/projects/:id` | Delete project | Cookie | ✅ Implemented |
+| GET | `/api/projects/:id/tasks` | Tasks for this project, grouped by status column (Figma "Projects > Design Homepage" breadcrumb view) | Cookie | ✅ Implemented |
+| POST | `/api/projects/:id/tasks` | Create a task under this project | Cookie | ✅ Implemented |
+
+### Tasks
+| Method | Path | Description | Auth | Status |
+|--------|------|-------------|------|--------|
+| GET | `/api/tasks` | List tasks. Filters via query params: `projectId`, `assigneeId`, `status`, `priority` | Cookie | ✅ Implemented |
+| POST | `/api/tasks` | Create task (`projectId` optional — unassigned tasks allowed) | Cookie | ✅ Implemented |
+| GET | `/api/tasks/:id` | Get one task, with project/assignees/labels/subtasks/comments | Cookie | ✅ Implemented |
+| PATCH | `/api/tasks/:id` | Update task (full edit surface, including status) | Cookie | ✅ Implemented |
+| PATCH | `/api/tasks/:id/status` | Move task to a new status — dedicated minimal-payload endpoint for board drag-and-drop | Cookie | ✅ Implemented |
+| DELETE | `/api/tasks/:id` | Delete task (cascades subtasks and comments) | Cookie | ✅ Implemented |
+
+### Subtasks (nested under Task)
+| Method | Path | Description | Auth | Status |
+|--------|------|-------------|------|--------|
+| GET | `/api/tasks/:taskId/subtasks` | List subtasks for a task | Cookie | ✅ Implemented |
+| POST | `/api/tasks/:taskId/subtasks` | Add subtask | Cookie | ✅ Implemented |
+| GET | `/api/tasks/:taskId/subtasks/:id` | Get one subtask | Cookie | ✅ Implemented |
+| PATCH | `/api/tasks/:taskId/subtasks/:id` | Update subtask | Cookie | ✅ Implemented |
+| DELETE | `/api/tasks/:taskId/subtasks/:id` | Delete subtask | Cookie | ✅ Implemented |
+
+### Comments (nested under Task)
+| Method | Path | Description | Auth | Status |
+|--------|------|-------------|------|--------|
+| GET | `/api/tasks/:taskId/comments` | List comments, ordered by `createdAt` ascending | Cookie | ✅ Implemented |
+| POST | `/api/tasks/:taskId/comments` | Add comment (author = current session user) | Cookie | ✅ Implemented |
+
+### Labels
+| Method | Path | Description | Auth | Status |
+|--------|------|-------------|------|--------|
+| GET | `/api/labels` | List labels | Cookie | ✅ Implemented |
+| POST | `/api/labels` | Create label | Cookie | ✅ Implemented |
+| GET | `/api/labels/:id` | Get one label | Cookie | ✅ Implemented |
+| PATCH | `/api/labels/:id` | Update label | Cookie | ✅ Implemented |
+| DELETE | `/api/labels/:id` | Delete label | Cookie | ✅ Implemented |
+
+TODO: no frontend UI consumes these yet (board/list views, task detail panel) — routes are built and tested against the live Neon database, not wired into pages.
 ---
 ## 7. Known Deviations from the Figma Design
 Documented as they're made, not reconstructed from memory at submission time.
