@@ -22,7 +22,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
+  // /api/* must be excluded — those requests get rewritten to the backend
+  // (see next.config.ts) and need to pass through untouched, not be
+  // intercepted and redirected by this page-routing check.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

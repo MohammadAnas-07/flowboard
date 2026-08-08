@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { API_URL } from '@/lib/constants';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,7 +12,10 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/auth/guest`, {
+      // Relative path (not the absolute backend URL) so this stays
+      // same-origin — see the rewrite in next.config.ts for why that matters
+      // for the cookie to end up first-party.
+      const res = await fetch('/api/auth/guest', {
         method: 'POST',
         credentials: 'include',
       });
