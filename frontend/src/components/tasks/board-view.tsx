@@ -64,7 +64,7 @@ function QuickAddTask({
       <div className="flex gap-2">
         <button
           type="submit"
-          className="rounded bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black"
+          className="rounded bg-accent px-2 py-1 text-xs font-medium text-accent-foreground"
         >
           Add
         </button>

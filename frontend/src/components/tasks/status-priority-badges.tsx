@@ -1,9 +1,13 @@
 import { Badge } from '@/components/ui/badge';
 import { PRIORITY_LABELS, STATUS_LABELS, type Priority, type Status } from '@/lib/types';
 
+// Urgent uses the accent color (the "priority-high accent" the theme system
+// spec calls out) — the rest stay fixed semantic colors, since having every
+// priority level shift with the user's accent choice would make them
+// harder to tell apart at a glance, not easier.
 const PRIORITY_DOT: Record<Priority, string> = {
   NO_PRIORITY: 'bg-zinc-300 dark:bg-zinc-600',
-  URGENT: 'bg-red-500',
+  URGENT: 'bg-accent',
   HIGH: 'bg-orange-500',
   MEDIUM: 'bg-yellow-500',
   LOW: 'bg-blue-500',

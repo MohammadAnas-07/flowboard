@@ -83,7 +83,7 @@ export function SubtasksTable({ subtasks, onCreate, onDelete }: SubtasksTablePro
               placeholder="Subtask title…"
               className="flex-1 rounded border border-black/[.08] bg-transparent px-2 py-1 text-sm outline-none dark:border-white/[.145]"
             />
-            <button type="submit" className="rounded bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
+            <button type="submit" className="rounded bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
               Add
             </button>
             <button type="button" onClick={() => setAdding(false)} className="rounded px-2 py-1 text-xs text-zinc-500">
