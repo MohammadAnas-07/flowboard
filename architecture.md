@@ -30,9 +30,10 @@ TODO: confirm this stays accurate once auth and data layers are actually wired u
 Implemented in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma). Summary below — treat the schema file as the source of truth if these ever drift. Migrated and live against the Neon database.
 - **User** — id, email, name, avatar, isGuest, theme, accentColor
 - **Project** — id, name, priority, leadId (→ User, nullable), dueDate. Deleting a project does **not** delete its tasks — Prisma's default `SET NULL` on the optional `Task.projectId` relation applies, so tasks survive and become unassigned rather than being destroyed. Verified live (Section 6 test pass), kept deliberately: task history shouldn't vanish because the project it was filed under got deleted.
-- **Task** — id, title, description, status (`BACKLOG` / `TODO` / `DOING` / `COMPLETED` / `ON_HOLD`), priority (`NO_PRIORITY` / `URGENT` / `HIGH` / `MEDIUM` / `LOW`), assignees (↔ User, many-to-many), startDate, dueDate, projectId (nullable), labels (↔ Label, many-to-many)
+- **Task** — id, title, description, status (`BACKLOG` / `TODO` / `DOING` / `COMPLETED` / `ON_HOLD`), priority (`NO_PRIORITY` / `URGENT` / `HIGH` / `MEDIUM` / `LOW`), assignees (↔ User, many-to-many), startDate, dueDate, resourceUrl (nullable — single document/link field for the detail page's Resources row; no file upload, no multiple resources by design), projectId (nullable), labels (↔ Label, many-to-many)
 - **Subtask** — same core fields as Task (including assignees, i.e. members — added after the initial draft, since the plan called for member support here too), parentTaskId (→ Task, cascade delete)
 - **Comment** — taskId, authorId, body, createdAt
+- **TaskActivity** — id, field, oldValue, newValue, createdAt, taskId (→ Task, cascade delete). Powers the task detail page's "Updates" panel. Written server-side only, by `TasksService`, only for `status` / `priority` / `startDate` / `dueDate` / `assignee` changes (matches what the Figma's Updates panel actually shows — not every editable field). No actor/user field: with only the single reused guest account in this app, "who changed it" wouldn't add information yet.
 - **Label** — name (unique; seeded via [`backend/prisma/seed.ts`](backend/prisma/seed.ts): Research, Design, Development, Testing, Deployment — confirmed live in the Neon database)
 
 Every route below runs through the global `AuthGuard` (Section 4) — all task/project data requires an authenticated session. DTOs use `class-validator` (enum checks on `status`/`priority`, string length limits, required-field checks) and reject invalid input with `400` before it reaches Prisma; foreign-key violations (bad `projectId`/`assigneeIds`/`labelIds`/`leadId`) are also caught and returned as clean `400`s rather than raw Prisma errors.
@@ -98,6 +99,7 @@ Keep this table accurate — it's the fastest way for an evaluator to understand
 | PATCH | `/api/tasks/:id` | Update task (full edit surface, including status) | Cookie | ✅ Implemented |
 | PATCH | `/api/tasks/:id/status` | Move task to a new status — dedicated minimal-payload endpoint for board drag-and-drop | Cookie | ✅ Implemented |
 | DELETE | `/api/tasks/:id` | Delete task (cascades subtasks and comments) | Cookie | ✅ Implemented |
+| GET | `/api/tasks/:id/activity` | List activity log entries for the task's "Updates" panel, newest first | Cookie | ✅ Implemented |
 
 ### Subtasks (nested under Task)
 | Method | Path | Description | Auth | Status |
@@ -130,6 +132,7 @@ Documented as they're made, not reconstructed from memory at submission time.
 - Confirmed: Backlog status — the Figma task detail panel shows a "Backlog" status not present as a Kanban column. Board now built: `BOARD_STATUSES` (`frontend/src/lib/types.ts`) excludes `BACKLOG`, so backlog tasks don't render as a column. They do still appear in the List view, which groups by every status — list and board intentionally show a different status set.
 - Confirmed: the `/login` page's "Login with Google" button is present but disabled (`aria-disabled`, no click handler) — full OAuth setup was out of scope given the assessment timeline. Guest Login (`POST /api/auth/guest`) is the fully functional, tested auth path.
 - Confirmed: the task list view's "Fields" dropdown includes a toggleable "Reporter" column (per Figma) even though the data model has no `reporter`/`createdBy` field on `Task` — it renders as a placeholder (`—`) rather than being silently dropped. Adding real reporter tracking would need a schema change, out of scope for this pass.
+- Confirmed: the task detail page's Details sidebar shows a "Reporter" field (same `—` placeholder gap as above) and a "Team" field — there's no `Team` model in the data layer, so `Team` displays the task's `project.name` as the closest existing equivalent (or `—` for unassigned tasks) rather than being dropped or fabricated.
 - TODO: add any further deviations here as they come up during the build. Don't skip this — it's an explicit grading criterion.
 ---
 ## 8. Testing Strategy
