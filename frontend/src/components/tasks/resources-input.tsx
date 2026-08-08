@@ -57,7 +57,7 @@ export function ResourcesInput({ resourceUrl, onChange }: ResourcesInputProps) {
           placeholder="Paste a document or link URL…"
           className="flex-1 rounded border border-black/[.08] bg-transparent px-2 py-1 text-sm outline-none dark:border-white/[.145]"
         />
-        <button type="submit" className="rounded bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
+        <button type="submit" className="rounded bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
           Add
         </button>
       </form>

@@ -58,7 +58,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleGuestLogin}
             disabled={loading}
-            className="flex h-11 w-full items-center justify-center rounded-full bg-black px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-60 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="flex h-11 w-full items-center justify-center rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {loading ? 'Signing in…' : 'Continue as Guest'}
           </button>

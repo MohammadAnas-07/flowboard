@@ -67,7 +67,7 @@ export function CommentsThread({
         <button
           type="submit"
           disabled={submitting || !body.trim()}
-          className="self-end rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+          className="self-end rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground disabled:opacity-50"
         >
           {submitting ? 'Posting…' : 'Add a comment'}
         </button>

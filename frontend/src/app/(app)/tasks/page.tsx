@@ -107,7 +107,7 @@ export default function TasksPage() {
               onClick={() => setView(mode)}
               className={`rounded-full px-3 py-1 text-sm font-medium capitalize transition-colors ${
                 view === mode
-                  ? 'bg-black text-white dark:bg-white dark:text-black'
+                  ? 'bg-accent text-accent-foreground'
                   : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100'
               }`}
             >
