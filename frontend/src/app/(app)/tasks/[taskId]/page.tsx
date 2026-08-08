@@ -133,8 +133,13 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="flex h-full">
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+    // A single scrolling column below lg — the Details sidebar stacks
+    // beneath the main content instead of squeezing beside it (320px fixed
+    // next to a phone-width column doesn't leave room to read either one).
+    // At lg+ this goes back to the original two independently-scrolling
+    // panes side by side.
+    <div className="flex h-full flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col lg:overflow-hidden">
         <header className="flex items-center gap-2 border-b border-black/[.08] px-6 py-3 dark:border-white/[.145]">
           <Link
             href="/tasks"
@@ -154,7 +159,7 @@ export default function TaskDetailPage() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 px-6 py-5 lg:overflow-y-auto">
           <div className="mx-auto flex max-w-3xl flex-col gap-6">
             <EditableTitleDescription
               title={task.title}

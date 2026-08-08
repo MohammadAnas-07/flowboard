@@ -1,12 +1,10 @@
 # Flowboard Architecture
-> **Status: Skeleton.** Sections marked `TODO` will be filled in as each part is built. This file is written early and updated per commit so it stays accurate — not backfilled at the end.
-This document provides a high-level overview of the architectural design, technologies, data flow, and design decisions for this project, built as the AbleSpace Full Stack Developer (Fresher) technical assessment.
+This document covers the architectural design, technologies, data flow, and decisions behind Flowboard, built as the AbleSpace Full Stack Developer (Fresher) technical assessment. Written and updated alongside the build, not filled in afterward.
 ## 1. High-Level System Architecture
 The application follows a decoupled client-server architecture:
 - **Frontend (Client):** A Next.js (App Router) application responsible for the UI, routing, task board/list views, theming, and client-side state.
 - **Backend (Server):** A NestJS REST API responsible for authentication, task/project/subtask/comment CRUD, validation, and business logic.
 - **Database Layer:** PostgreSQL, accessed via Prisma ORM for type-safe queries and migrations.
-TODO: confirm this stays accurate once auth and data layers are actually wired up — update if anything deviates.
 ---
 ## 2. Technology Stack
 ### Client (Frontend)
@@ -71,7 +69,7 @@ flowchart TD
     API --> Guard
     API <-->|Prisma Engine| DB
 ```
-TODO: this diagram is intentionally minimal for the skeleton stage — expand if any external services (e.g. file storage, email) get added.
+No file storage or email service was ever added, so this stays the complete picture: three services, nothing else in the request path.
 ---
 ## 6. API Reference
 Keep this table accurate — it's the fastest way for an evaluator to understand scope without reading every controller. "Status" reflects what's actually deployed, not the plan.
@@ -129,7 +127,7 @@ Keep this table accurate — it's the fastest way for an evaluator to understand
 | PATCH | `/api/labels/:id` | Update label | Cookie | ✅ Implemented |
 | DELETE | `/api/labels/:id` | Delete label | Cookie | ✅ Implemented |
 
-TODO: no frontend UI consumes these yet (board/list views, task detail panel) — routes are built and tested against the live Neon database, not wired into pages.
+`GET /api/labels` is consumed by the label picker (task detail page and its Details sidebar) to list the available labels; assigning one to a task goes through `PATCH /api/tasks/:id`'s `labelIds` field, not through these routes directly. `POST`/`PATCH`/`DELETE` here have no frontend trigger. There's no "create a new label" UI, only the five seeded labels are ever selectable. All five routes are still built and tested against the live Neon database.
 ---
 ## 7. Known Deviations from the Figma Design
 Documented as they're made, not reconstructed from memory at submission time.
@@ -140,13 +138,20 @@ Documented as they're made, not reconstructed from memory at submission time.
 - Confirmed: the `/settings` page's Profile section (avatar, email, name, title, username) is session-local by design — edits live in component state only and are never sent to the backend. The app has no real per-user accounts (guest login always resolves to the same shared demo `User` row), so persisting profile edits would mean one guest's changes overwrite another guest's session. Reloading the page or opening a new guest session resets these fields to defaults. Theme and Color Mode are the exception — those already persist (see Section 2) since they're cosmetic/device-local by design, not identity data. "Leave Workspace" on the same page is disabled for the same guest-mode reason, following the existing Google-login stub pattern.
 - Confirmed: the funnel/filter icon shown next to "Fields" in the Figma toolbar has no prototyped interaction in the source file — no distinct panel or click behavior is defined for it there. Rather than invent behavior for it, it was left out of the built toolbar entirely (the "Fields" button itself already covers the real interaction: Status/Priority submenus filter rows, see below). If the Figma is ever updated with an intended behavior for it, revisit.
 - Confirmed: the Fields dropdown's Status/Priority row-filtering (Tasks board/list, Projects list) is client-side only and intentionally not persisted — resets on navigation or reload, same as the existing column-visibility state it sits alongside (Section 2). Selecting an already-active filter value clears it; the Figma shows no separate "clear filter" control.
-- TODO: add any further deviations here as they come up during the build. Don't skip this — it's an explicit grading criterion.
+- Confirmed: the sidebar's mobile behavior (below 768px) is an off-canvas drawer opened by a hamburger button, not the desktop icon-collapse rail shrunk further. Desktop collapse is a standing user preference saved to `localStorage`. The mobile drawer is closed by default every time and has no such preference, since there's no room for a persistent icon rail at phone width.
 ---
 ## 8. Testing Strategy
-TODO — not yet implemented. Plan:
-- Backend: unit tests for guards and validation pipes, integration tests for auth-protected routes (Jest + Supertest, following the pattern used in Task-Flow's `export.test.js`).
-- Frontend: TODO, decide scope given time budget.
+No automated test suite was written for this project. Backend keeps the two spec files `nest generate` produces by default (`src/app.controller.spec.ts`, `test/app.e2e-spec.ts`), and both still just test the placeholder "Hello World" root route, not anything Flowboard-specific. Frontend has no test files at all.
+
+Verification happened manually instead, feature by feature, before each merge to `main`: running the app locally against a live Neon connection, a curl round-trip against that live database after every schema migration rather than trusting Prisma's migrate output on its own, and a check against that feature branch's Vercel preview deploy before merging. Given more time, the backend guards and DTO validation pipes are the highest-value place to add real Jest coverage. They're pure logic with no database dependency, cheap to test in isolation, and they're the actual security/validation boundary described in Section 4.
 ---
 ## 9. Known Limitations
 Being upfront about what this doesn't do, same as any real project:
-- TODO: fill in honestly at the end. Likely candidates: no automated frontend tests given the 14-day window, Google OAuth is a stub not a working integration, no CI pipeline unless time allows.
+- No automated tests, covered in full in Section 8.
+- Google login is a disabled stub, not a working OAuth integration (Section 7).
+- No CI pipeline. Pushes to `main` trigger Vercel's and Render's own git-connected deploys directly; there's no automated lint/test/build gate in between beyond running those checks by hand before merging.
+- Single shared guest account, not real multi-user support. Everyone using the live demo reads and writes the same tasks, projects, and comments at the same time. Task/project assignees always resolve to that one demo user, since there's no second account to assign anything to.
+- No file upload. `resourceUrl` on a task is a plain link field, and profile avatars are an initials/color picker or a URL string, not a real upload pipeline.
+- No realtime sync. If the same account is open in two tabs or two browsers, one won't see the other's changes until it reloads. There's no websocket or polling layer.
+- No pagination on the list endpoints (`GET /api/tasks`, `GET /api/projects`). Fine at the data volumes this demo has, would need it before that data grew much further.
+- Render's free tier spins the backend down after periods of inactivity, so the first request after a while can take up to about a minute while it cold-starts. That's a Render free-tier characteristic, not something the app itself does.
