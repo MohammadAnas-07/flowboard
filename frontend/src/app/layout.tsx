@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { AccentProvider } from "@/components/layout/accent-provider";
+import { ACCENT_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,9 +24,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      // next-themes (light/dark) and our own accent-color init script both
+      // mutate attributes on <html> before hydration — this is required so
+      // React doesn't flag that as a mismatch.
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        {/* Accent color ("Color Mode") isn't next-themes' concern — mirrors
+            its approach with our own blocking pre-hydration script so there's
+            no flash of the default accent before the stored one applies. */}
+        <script dangerouslySetInnerHTML={{ __html: ACCENT_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AccentProvider>{children}</AccentProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
