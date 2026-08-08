@@ -38,9 +38,10 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  projectsLed   Project[] @relation("ProjectLead")
-  assignedTasks Task[]    @relation("TaskAssignees")
-  comments      Comment[]
+  projectsLed      Project[] @relation("ProjectLead")
+  assignedTasks    Task[]    @relation("TaskAssignees")
+  assignedSubtasks Subtask[] @relation("SubtaskAssignees")
+  comments         Comment[]
 
   @@map("users")
 }
@@ -95,6 +96,8 @@ model Subtask {
 
   parentTaskId String
   parentTask   Task   @relation(fields: [parentTaskId], references: [id], onDelete: Cascade)
+
+  assignees User[] @relation("SubtaskAssignees")
 
   @@map("subtasks")
 }
