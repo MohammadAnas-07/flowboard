@@ -12,7 +12,8 @@ TODO: confirm this stays accurate once auth and data layers are actually wired u
 ### Client (Frontend)
 - **Framework:** Next.js (App Router), TypeScript
 - **Styling:** Tailwind CSS
-- **State/Fetching:** TODO — decide and document (React Context, or a fetch/query library)
+- **State/Fetching:** Plain React state (`useState`/`useEffect`) + `fetch`, no external state or query library. Client components (`/tasks`, `/projects`, `/projects/:id`) fetch their own data on mount via `lib/api.ts`, which always calls relative `/api/*` paths (never the Render URL directly) so requests go through the same-origin rewrite proxy in `next.config.ts` — required for the session cookie to be visible cross-origin. Server components (the `(app)` layout's auth gate) use `lib/auth-server.ts` instead, which calls the absolute backend URL with a manually forwarded cookie header, since a server-side `fetch` never passes through the browser and can't use the relative-path rewrite. Board drag-and-drop and list/table edits update local state optimistically, then call the API and roll back on failure.
+- **Column visibility ("Fields" dropdown, task list view):** kept in local component state (`useState<Set<string>>` in the Tasks/project-detail pages), not persisted anywhere — resets on reload or navigating away. Deliberately not a backend user preference; revisit if that's wanted later.
 - **Theming:** Two independent axes — light/dark mode and accent color — persisted via `localStorage`, read pre-hydration to avoid flash of wrong theme
 - **Deployment:** Vercel — https://flowboard-zeta-eight.vercel.app
 ### Server (Backend)
@@ -126,8 +127,9 @@ TODO: no frontend UI consumes these yet (board/list views, task detail panel) �
 ---
 ## 7. Known Deviations from the Figma Design
 Documented as they're made, not reconstructed from memory at submission time.
-- TODO: Backlog status — the Figma task detail panel shows a "Backlog" status not present as a Kanban column. Assumption: Backlog tasks exist pre-board and don't render until moved to a column. [Confirm or revise once board is built.]
+- Confirmed: Backlog status — the Figma task detail panel shows a "Backlog" status not present as a Kanban column. Board now built: `BOARD_STATUSES` (`frontend/src/lib/types.ts`) excludes `BACKLOG`, so backlog tasks don't render as a column. They do still appear in the List view, which groups by every status — list and board intentionally show a different status set.
 - Confirmed: the `/login` page's "Login with Google" button is present but disabled (`aria-disabled`, no click handler) — full OAuth setup was out of scope given the assessment timeline. Guest Login (`POST /api/auth/guest`) is the fully functional, tested auth path.
+- Confirmed: the task list view's "Fields" dropdown includes a toggleable "Reporter" column (per Figma) even though the data model has no `reporter`/`createdBy` field on `Task` — it renders as a placeholder (`—`) rather than being silently dropped. Adding real reporter tracking would need a schema change, out of scope for this pass.
 - TODO: add any further deviations here as they come up during the build. Don't skip this — it's an explicit grading criterion.
 ---
 ## 8. Testing Strategy
