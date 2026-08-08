@@ -14,7 +14,7 @@ import { PlusIcon } from '@/components/layout/icons';
 import { BOARD_STATUSES, STATUS_LABELS, type Status, type Task } from '@/lib/types';
 import { TaskCard } from './task-card';
 
-function DraggableTaskCard({ task }: { task: Task }) {
+function DraggableTaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -29,7 +29,9 @@ function DraggableTaskCard({ task }: { task: Task }) {
       {...attributes}
       className={`cursor-grab touch-none active:cursor-grabbing ${isDragging ? 'opacity-40' : ''}`}
     >
-      <TaskCard task={task} />
+      {/* dnd-kit's 4px activation distance means a plain click (no drag)
+          still reaches this handler normally. */}
+      <TaskCard task={task} onOpen={() => onOpen(task.id)} />
     </div>
   );
 }
@@ -82,10 +84,12 @@ function Column({
   status,
   tasks,
   onCreateTask,
+  onOpenTask,
 }: {
   status: Status;
   tasks: Task[];
   onCreateTask: (status: Status, title: string) => void;
+  onOpenTask: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [adding, setAdding] = useState(false);
@@ -124,7 +128,7 @@ function Column({
           />
         )}
         {tasks.map((task) => (
-          <DraggableTaskCard key={task.id} task={task} />
+          <DraggableTaskCard key={task.id} task={task} onOpen={onOpenTask} />
         ))}
       </div>
     </div>
@@ -135,10 +139,12 @@ export function BoardView({
   tasks,
   onMoveTask,
   onCreateTask,
+  onOpenTask,
 }: {
   tasks: Task[];
   onMoveTask: (id: string, status: Status) => void;
   onCreateTask: (status: Status, title: string) => void;
+  onOpenTask: (id: string) => void;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -163,6 +169,7 @@ export function BoardView({
             status={status}
             tasks={tasks.filter((t) => t.status === status)}
             onCreateTask={onCreateTask}
+            onOpenTask={onOpenTask}
           />
         ))}
       </div>

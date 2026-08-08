@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { SearchIcon } from '@/components/layout/icons';
 import { FieldsDropdown } from '@/components/shared/fields-dropdown';
@@ -13,6 +14,7 @@ type ViewMode = 'list' | 'board';
 const DEFAULT_VISIBLE_FIELDS = new Set(['priority', 'members', 'dueDate']);
 
 export default function TasksPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,9 +129,19 @@ export default function TasksPage() {
       {loading ? (
         <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">Loading…</div>
       ) : view === 'board' ? (
-        <BoardView tasks={filteredTasks} onMoveTask={handleMoveTask} onCreateTask={handleCreateTask} />
+        <BoardView
+          tasks={filteredTasks}
+          onMoveTask={handleMoveTask}
+          onCreateTask={handleCreateTask}
+          onOpenTask={(id) => router.push(`/tasks/${id}`)}
+        />
       ) : (
-        <ListView tasks={filteredTasks} visibleFields={visibleFields} onDeleteTask={handleDeleteTask} />
+        <ListView
+          tasks={filteredTasks}
+          visibleFields={visibleFields}
+          onDeleteTask={handleDeleteTask}
+          onOpenTask={(id) => router.push(`/tasks/${id}`)}
+        />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ChevronRightIcon } from '@/components/layout/icons';
 import { FieldsDropdown } from '@/components/shared/fields-dropdown';
@@ -13,6 +13,7 @@ const DEFAULT_VISIBLE_FIELDS = new Set(['priority', 'members', 'dueDate']);
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +82,12 @@ export default function ProjectDetailPage() {
       {loading ? (
         <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">Loading…</div>
       ) : (
-        <ListView tasks={tasks} visibleFields={visibleFields} onDeleteTask={handleDeleteTask} />
+        <ListView
+          tasks={tasks}
+          visibleFields={visibleFields}
+          onDeleteTask={handleDeleteTask}
+          onOpenTask={(id) => router.push(`/tasks/${id}`)}
+        />
       )}
     </div>
   );

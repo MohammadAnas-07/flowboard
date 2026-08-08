@@ -99,10 +99,12 @@ export function ListView({
   tasks,
   visibleFields,
   onDeleteTask,
+  onOpenTask,
 }: {
   tasks: Task[];
   visibleFields: Set<string>;
   onDeleteTask: (id: string) => void;
+  onOpenTask?: (id: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const columns = buildColumns(visibleFields, onDeleteTask);
@@ -143,6 +145,7 @@ export function ListView({
                 columns={columns}
                 rows={sectionTasks}
                 rowKey={(t) => t.id}
+                onRowClick={onOpenTask ? (t) => onOpenTask(t.id) : undefined}
                 emptyMessage="No tasks here."
               />
             )}
