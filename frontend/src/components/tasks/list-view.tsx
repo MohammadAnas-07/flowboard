@@ -3,17 +3,40 @@
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column } from '@/components/shared/data-table';
+import type { FilterField } from '@/components/shared/fields-dropdown';
 import { ChevronDownIcon, ChevronRightIcon } from '@/components/layout/icons';
-import { ALL_STATUSES, STATUS_LABELS, type Task } from '@/lib/types';
-import { DueDateBadge, LabelPill, PriorityBadge, StatusBadge } from './status-priority-badges';
+import { ALL_STATUSES, PRIORITY_LABELS, STATUS_LABELS, type Priority, type Status, type Task } from '@/lib/types';
+import { DueDateBadge, LabelPill, PriorityBadge } from './status-priority-badges';
 
+// Priority and Status aren't here — per the Figma, those two are
+// filter-only fields now (see TASK_FILTER_FIELDS below), not
+// checkbox-toggled columns. Priority's column is always shown (matches its
+// prior default-visible state); Status has no column at all in this view —
+// see the comment in buildColumns for why.
 export const TASK_FIELD_OPTIONS = [
-  { key: 'priority', label: 'Priority' },
   { key: 'members', label: 'Members' },
   { key: 'dueDate', label: 'Due Date' },
   { key: 'labels', label: 'Labels' },
-  { key: 'status', label: 'Status' },
   { key: 'reporter', label: 'Reporter' },
+];
+
+export const TASK_FILTER_FIELDS: FilterField[] = [
+  {
+    key: 'priority',
+    label: 'Priority',
+    values: (Object.keys(PRIORITY_LABELS) as Priority[]).map((key) => ({
+      key,
+      label: PRIORITY_LABELS[key],
+    })),
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    values: (Object.keys(STATUS_LABELS) as Status[]).map((key) => ({
+      key,
+      label: STATUS_LABELS[key],
+    })),
+  },
 ];
 
 function buildColumns(visible: Set<string>, onDelete: (id: string) => void): Column<Task>[] {
@@ -21,11 +44,9 @@ function buildColumns(visible: Set<string>, onDelete: (id: string) => void): Col
     { key: 'title', header: 'Task', render: (t) => (
       <span className="font-medium text-black dark:text-zinc-50">{t.title}</span>
     ) },
+    { key: 'priority', header: 'Priority', render: (t) => <PriorityBadge priority={t.priority} /> },
   ];
 
-  if (visible.has('priority')) {
-    columns.push({ key: 'priority', header: 'Priority', render: (t) => <PriorityBadge priority={t.priority} /> });
-  }
   if (visible.has('members')) {
     columns.push({
       key: 'members',
@@ -65,9 +86,10 @@ function buildColumns(visible: Set<string>, onDelete: (id: string) => void): Col
         ),
     });
   }
-  if (visible.has('status')) {
-    columns.push({ key: 'status', header: 'Status', render: (t) => <StatusBadge status={t.status} /> });
-  }
+  // No per-row Status column: rows are already grouped into per-status
+  // sections below (every row in a section shares the same status, so a
+  // column repeating it would be redundant) — Status is filter-only now,
+  // via TASK_FILTER_FIELDS, same as it was hidden-by-default before.
   if (visible.has('reporter')) {
     // Not tracked in the data model yet (no createdBy/reporter field on
     // Task) — shown as a placeholder so the Figma's column set is still

@@ -5,13 +5,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { SearchIcon } from '@/components/layout/icons';
 import { FieldsDropdown } from '@/components/shared/fields-dropdown';
 import { BoardView } from '@/components/tasks/board-view';
-import { ListView, TASK_FIELD_OPTIONS } from '@/components/tasks/list-view';
+import { ListView, TASK_FIELD_OPTIONS, TASK_FILTER_FIELDS } from '@/components/tasks/list-view';
 import { ApiError, createTask, deleteTask, getTasks, updateTaskStatus } from '@/lib/api';
-import type { Status, Task } from '@/lib/types';
+import type { Priority, Status, Task } from '@/lib/types';
 
 type ViewMode = 'list' | 'board';
 
-const DEFAULT_VISIBLE_FIELDS = new Set(['priority', 'members', 'dueDate']);
+const DEFAULT_VISIBLE_FIELDS = new Set(['members', 'dueDate']);
 
 export default function TasksPage() {
   const router = useRouter();
@@ -21,6 +21,12 @@ export default function TasksPage() {
   const [view, setView] = useState<ViewMode>('board');
   const [search, setSearch] = useState('');
   const [visibleFields, setVisibleFields] = useState<Set<string>>(DEFAULT_VISIBLE_FIELDS);
+  // Fields-dropdown value filters (Status/Priority submenus) — client-side
+  // only, applies to both board and list view since both read
+  // `filteredTasks`. Not persisted: resets on navigation/refresh by design
+  // (plain useState, same as `search` and `visibleFields` above).
+  const [statusFilter, setStatusFilter] = useState<Status | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
 
   useEffect(() => {
     getTasks()
@@ -31,9 +37,18 @@ export default function TasksPage() {
 
   const filteredTasks = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return tasks;
-    return tasks.filter((t) => t.title.toLowerCase().includes(q));
-  }, [tasks, search]);
+    return tasks.filter((t) => {
+      if (q && !t.title.toLowerCase().includes(q)) return false;
+      if (statusFilter && t.status !== statusFilter) return false;
+      if (priorityFilter && t.priority !== priorityFilter) return false;
+      return true;
+    });
+  }, [tasks, search, statusFilter, priorityFilter]);
+
+  function handleFilterChange(fieldKey: string, valueKey: string | null) {
+    if (fieldKey === 'status') setStatusFilter(valueKey as Status | null);
+    if (fieldKey === 'priority') setPriorityFilter(valueKey as Priority | null);
+  }
 
   async function handleMoveTask(id: string, status: Status) {
     const previous = tasks;
@@ -91,13 +106,17 @@ export default function TasksPage() {
           />
         </div>
 
-        {view === 'list' && (
-          <FieldsDropdown
-            fields={TASK_FIELD_OPTIONS}
-            visible={visibleFields}
-            onToggle={toggleField}
-          />
-        )}
+        <FieldsDropdown
+          // Column-visibility checkboxes only make sense in list view
+          // (board cards have fixed content); the Status/Priority filter
+          // submenus apply to both, since both views read filteredTasks.
+          fields={view === 'list' ? TASK_FIELD_OPTIONS : []}
+          visible={visibleFields}
+          onToggle={toggleField}
+          filterFields={TASK_FILTER_FIELDS}
+          activeFilters={{ status: statusFilter, priority: priorityFilter }}
+          onFilterChange={handleFilterChange}
+        />
 
         <div className="flex rounded-full border border-black/[.08] p-0.5 dark:border-white/[.145]">
           {(['list', 'board'] as const).map((mode) => (

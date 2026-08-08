@@ -1,18 +1,34 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column } from '@/components/shared/data-table';
+import { FieldsDropdown, type FilterField } from '@/components/shared/fields-dropdown';
 import { PriorityBadge } from '@/components/tasks/status-priority-badges';
 import { ApiError, deleteProject, getProjects } from '@/lib/api';
-import type { Project } from '@/lib/types';
+import { PRIORITY_LABELS, type Priority, type Project } from '@/lib/types';
+
+// Projects only have Priority (no Status field on the Project model) — see
+// the Task-side TASK_FILTER_FIELDS in components/tasks/list-view.tsx for
+// the two-field version.
+const PROJECT_FILTER_FIELDS: FilterField[] = [
+  {
+    key: 'priority',
+    label: 'Priority',
+    values: (Object.keys(PRIORITY_LABELS) as Priority[]).map((key) => ({
+      key,
+      label: PRIORITY_LABELS[key],
+    })),
+  },
+];
 
 export default function ProjectsPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
 
   useEffect(() => {
     getProjects()
@@ -20,6 +36,11 @@ export default function ProjectsPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load projects'))
       .finally(() => setLoading(false));
   }, []);
+
+  const filteredProjects = useMemo(() => {
+    if (!priorityFilter) return projects;
+    return projects.filter((p) => p.priority === priorityFilter);
+  }, [projects, priorityFilter]);
 
   async function handleDelete(id: string) {
     const previous = projects;
@@ -84,6 +105,13 @@ export default function ProjectsPage() {
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-black/[.08] px-6 py-4 dark:border-white/[.145]">
         <h1 className="text-lg font-semibold text-black dark:text-zinc-50">Projects</h1>
+        <div className="ml-auto">
+          <FieldsDropdown
+            filterFields={PROJECT_FILTER_FIELDS}
+            activeFilters={{ priority: priorityFilter }}
+            onFilterChange={(_key, valueKey) => setPriorityFilter(valueKey as Priority | null)}
+          />
+        </div>
       </header>
 
       {error && (
@@ -102,10 +130,14 @@ export default function ProjectsPage() {
           <div className="overflow-hidden rounded-lg border border-black/[.08] dark:border-white/[.145]">
             <DataTable
               columns={columns}
-              rows={projects}
+              rows={filteredProjects}
               rowKey={(p) => p.id}
               onRowClick={(p) => router.push(`/projects/${p.id}`)}
-              emptyMessage="No projects yet."
+              emptyMessage={
+                priorityFilter && projects.length > 0
+                  ? 'No projects match this filter.'
+                  : 'No projects yet.'
+              }
             />
           </div>
         )}
