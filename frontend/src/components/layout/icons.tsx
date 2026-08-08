@@ -91,6 +91,18 @@ export function SlidersIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+export function FunnelIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
+      <path
+        d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
