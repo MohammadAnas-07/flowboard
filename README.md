@@ -21,29 +21,74 @@ Frontend deploys to Vercel, backend to Render (via `render.yaml`), database is N
 
 ## Setup
 
-You need Node.js and a Postgres database (Neon's free tier works fine, or run Postgres locally).
+You need Node.js (18 or newer) and a Postgres database. Neon's free tier works fine, or run Postgres locally.
 
-Backend:
-
-```bash
-cd backend
-cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET, CORS_ORIGIN
-npm install             # also runs `prisma generate` via postinstall
-npm run prisma:migrate  # applies the migrations in prisma/migrations
-npm run prisma:seed     # seeds the five default labels
-npm run start:dev       # http://localhost:4000
+```mermaid
+flowchart TD
+    A["Clone the repo"] --> B["Copy backend/.env.example to backend/.env"]
+    B --> C["Copy frontend/.env.example to frontend/.env.local"]
+    C --> D["Fill in real values in both env files"]
+    D --> E["cd backend, npm install"]
+    E --> F["npm run prisma:migrate"]
+    F --> G["npm run prisma:seed"]
+    G --> H["npm run start:dev, backend on port 4000"]
+    H --> I["cd frontend, npm install"]
+    I --> J["npm run dev, frontend on port 3000"]
+    J --> K["Open localhost:3000"]
+    K --> L["Click Continue as Guest"]
 ```
 
-Frontend, in a separate terminal:
+### 1. Clone and configure the backend
 
 ```bash
-cd frontend
-cp .env.example .env.local   # NEXT_PUBLIC_API_URL, defaults to http://localhost:4000
+git clone https://github.com/MohammadAnas-07/flowboard.git
+cd flowboard/backend
+cp .env.example .env
+```
+
+Open `.env` and fill in:
+- `DATABASE_URL`: a real Postgres connection string. No Postgres handy? Create a free [Neon](https://neon.tech) project and copy its connection string.
+- `JWT_SECRET`: any long random string, e.g. the output of `openssl rand -base64 32`.
+- `CORS_ORIGIN`: leave as `http://localhost:3000` for local dev, that's the frontend's default port.
+- Leave `PORT` and the commented-out `NODE_ENV` line alone. `.env.example` explains what `NODE_ENV` does and why not to set it locally.
+
+### 2. Install backend dependencies and set up the database
+
+```bash
 npm install
-npm run dev   # http://localhost:3000
 ```
+Also runs `prisma generate` (the `postinstall` script), which generates the Prisma Client from `schema.prisma`. This needs `DATABASE_URL` to be present in `.env`, not necessarily reachable yet. If it fails here, check for a typo or a missing `.env` file rather than a connectivity problem.
 
-Open `http://localhost:3000` and click "Continue as Guest."
+```bash
+npm run prisma:migrate
+```
+Applies every migration in `prisma/migrations`, creating all the tables. If this fails, confirm `DATABASE_URL` is actually reachable (`psql "$DATABASE_URL"` or your client of choice), and if you're on Neon, confirm the project isn't paused. Neon's free tier suspends after inactivity and needs a moment to wake up on the first connection.
+
+```bash
+npm run prisma:seed
+```
+Seeds the five default labels (Research, Design, Development, Testing, Deployment). Safe to re-run, it upserts rather than duplicating.
+
+### 3. Start the backend
+
+```bash
+npm run start:dev
+```
+Starts the NestJS server on `http://localhost:4000` with hot reload. Confirm it's up with `curl http://localhost:4000/health`, should return `{"status":"ok"}`. Leave this running and open a new terminal for the frontend.
+
+### 4. Configure and start the frontend
+
+```bash
+cd flowboard/frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+`NEXT_PUBLIC_API_URL` in `.env.local` already defaults to `http://localhost:4000`, matching the backend's default port, no edit needed unless you changed `PORT` in the backend's `.env`. Starts the frontend on `http://localhost:3000`.
+
+### 5. Log in
+
+Open `http://localhost:3000` and click "Continue as Guest." If the button does nothing or errors, check the backend terminal for a CORS rejection and confirm `CORS_ORIGIN` in `backend/.env` includes `http://localhost:3000`.
 
 ## Running tests
 
