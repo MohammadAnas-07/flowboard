@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronRightIcon } from '@/components/layout/icons';
 import { FieldsDropdown } from '@/components/shared/fields-dropdown';
-import { ListView, TASK_FIELD_OPTIONS } from '@/components/tasks/list-view';
+import { ListView, TASK_FIELD_OPTIONS, TASK_FILTER_FIELDS } from '@/components/tasks/list-view';
 import { ApiError, deleteTask, getProject, getProjectTasksGrouped } from '@/lib/api';
-import type { Project, Task } from '@/lib/types';
+import type { Priority, Project, Status, Task } from '@/lib/types';
 
-const DEFAULT_VISIBLE_FIELDS = new Set(['priority', 'members', 'dueDate']);
+const DEFAULT_VISIBLE_FIELDS = new Set(['members', 'dueDate']);
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
@@ -19,6 +19,8 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleFields, setVisibleFields] = useState<Set<string>>(DEFAULT_VISIBLE_FIELDS);
+  const [statusFilter, setStatusFilter] = useState<Status | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
 
   useEffect(() => {
     Promise.all([getProject(params.id), getProjectTasksGrouped(params.id)])
@@ -32,6 +34,19 @@ export default function ProjectDetailPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load project'))
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (statusFilter && t.status !== statusFilter) return false;
+      if (priorityFilter && t.priority !== priorityFilter) return false;
+      return true;
+    });
+  }, [tasks, statusFilter, priorityFilter]);
+
+  function handleFilterChange(fieldKey: string, valueKey: string | null) {
+    if (fieldKey === 'status') setStatusFilter(valueKey as Status | null);
+    if (fieldKey === 'priority') setPriorityFilter(valueKey as Priority | null);
+  }
 
   async function handleDeleteTask(id: string) {
     const previous = tasks;
@@ -66,7 +81,14 @@ export default function ProjectDetailPage() {
         </nav>
 
         <div className="ml-auto">
-          <FieldsDropdown fields={TASK_FIELD_OPTIONS} visible={visibleFields} onToggle={toggleField} />
+          <FieldsDropdown
+            fields={TASK_FIELD_OPTIONS}
+            visible={visibleFields}
+            onToggle={toggleField}
+            filterFields={TASK_FILTER_FIELDS}
+            activeFilters={{ status: statusFilter, priority: priorityFilter }}
+            onFilterChange={handleFilterChange}
+          />
         </div>
       </header>
 
@@ -83,7 +105,7 @@ export default function ProjectDetailPage() {
         <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">Loading…</div>
       ) : (
         <ListView
-          tasks={tasks}
+          tasks={filteredTasks}
           visibleFields={visibleFields}
           onDeleteTask={handleDeleteTask}
           onOpenTask={(id) => router.push(`/tasks/${id}`)}
