@@ -9,7 +9,13 @@ This repo is Part 1 (the build). Part 2 is the product-understanding submission,
 - App: https://flowboard-zeta-eight.vercel.app
 - API: https://flowboard-api-9074.onrender.com (health check at `/health`)
 
-Click "Continue as Guest" on the login page. There's no real account system: guest login always resolves to the same shared demo user, so profile edits on the Settings page are local to your browser session and don't persist. Google login is a disabled stub, not wired up (see architecture.md's Known Deviations for why).
+Click "Continue as Guest" on the login page. There's no real account system: guest login always resolves to the same shared demo user, so profile edits on the Settings page are local to your browser session and don't persist. Google login is a disabled stub. [Known limitations](#known-limitations) covers both, and the rest of the boundaries.
+
+The backend runs on Render's free tier, which sleeps when idle. If the first load hangs, give it 30 to 60 seconds to cold-start.
+
+## Screenshots
+
+<!-- TODO: add screenshots of the deployed app here, see Task-Flow's README screenshots/ folder pattern -->
 
 ## Tech stack
 
@@ -18,6 +24,44 @@ Frontend is Next.js 16 (App Router), React 19, TypeScript, and Tailwind CSS v4. 
 Backend is NestJS 11, TypeScript, Prisma 6 as the ORM, PostgreSQL as the database. Auth is a JWT in an `httpOnly` cookie, checked by a global guard on every route except the ones explicitly marked `@Public()`. Every write goes through a `class-validator` DTO before it reaches Prisma.
 
 Frontend deploys to Vercel, backend to Render (via `render.yaml`), database is Neon's serverless Postgres. `architecture.md` has the reasoning behind each of those choices, plus the full data model and API reference.
+
+## What's built
+
+Shipped and working end to end against the deployed database:
+
+- [x] Guest auth: JWT in an `httpOnly` cookie, verified by a global guard on every route that isn't explicitly marked public
+- [x] Project CRUD, including a per-project task view grouped by status
+- [x] Task CRUD, with status, priority, dates, labels, assignees, and a resource link
+- [x] Drag-and-drop Kanban board, optimistic on drop with rollback if the API call fails
+- [x] List view grouped by status, with per-column visibility toggles and Status/Priority row filtering from the same Fields dropdown
+- [x] Task detail page: inline title/description editing, label picker, subtasks table, comments thread, and an activity log fed by server-side change tracking
+- [x] Two independent theme axes, light/dark and a six-option accent color, both persisted and both applied before first paint so there's no flash
+- [x] Session-local settings page with its own nav, separate from the main app shell
+- [x] Responsive layouts at phone, tablet, and desktop widths, including a hamburger drawer sidebar and table-to-card switching
+- [x] Backend unit tests for DTO validation and the auth guard
+
+Deliberately out of scope for the 14-day window, in rough order of what I'd pick up first:
+
+- [ ] Real Google OAuth, replacing the disabled stub button
+- [ ] Persisted per-user accounts, which is the unlock for real assignees, per-user settings, and anything multi-user
+- [ ] Automated frontend tests
+- [ ] Real-time collaboration, so two open tabs stay in sync without a reload
+- [ ] A CI pipeline gating merges on lint, tests, and build
+
+## Known limitations
+
+The boundaries here are chosen, not accidental. Each one has a reason:
+
+- **Google login is a disabled stub**, not wired to real OAuth. The button is in the UI to match the Figma, with `aria-disabled` and no click handler. Guest login is the only working auth path, and it's fully tested.
+- **One shared guest account, not real multi-user.** Every visitor to the live demo reads and writes the same tasks, projects, and comments. Assignees always resolve to that single demo user because there's no second account to assign anything to.
+- **Settings profile edits are session-local.** Avatar, name, email, title, and username live in component state and never reach the backend. With a single shared guest row, persisting them would leak one visitor's edits into another's session. Theme and accent color are the exception: those persist to `localStorage` because they're device-local display preferences, not identity.
+- **The funnel icon next to "Fields" was left out, not left decorative.** The source Figma defines no click behavior or panel for it, so rather than invent an interaction it isn't in the built toolbar at all. The Fields button already covers the real filtering.
+- **"Reporter" always renders as a dash.** It's offered as a list column and shown in the task Details sidebar to match the Figma, but `Task` has no `reporter`/`createdBy` field. Showing the gap beat silently dropping the field. Same story for "Team", which falls back to the task's project name since there's no `Team` model.
+- **Render's free tier sleeps after inactivity**, so the first request following an idle period takes roughly 30 to 60 seconds while the backend cold-starts. Everything after that is normal speed. That's the hosting tier, not the app.
+- **Filters and column visibility reset on reload.** Both are plain component state. The Figma gives no indication they should survive a refresh, and there's no per-user record to store them against anyway.
+- **No file upload.** A task's Resources row takes a URL, and avatars are initials on a color you pick. There's no storage bucket in the stack.
+- **No realtime sync and no pagination.** Two open tabs won't see each other's changes until one reloads, and `GET /api/tasks` and `GET /api/projects` return everything. Both are fine at demo data volumes and would need work before they weren't.
+- **Test coverage is narrow by design.** Backend DTO validation and the auth guard are covered, since they're pure logic and the actual validation and security boundary. Services, controllers, and the whole frontend were verified by hand instead, feature by feature, against a live database and a per-branch preview deploy.
 
 ## Setup
 
@@ -101,6 +145,46 @@ npm run test:e2e  # single e2e smoke test against a real Nest app instance
 ```
 
 Most of the suite is real: `class-validator` DTO tests for `CreateTaskDto` (accepts valid payloads, rejects bad enums/UUIDs/dates), and `AuthGuard` tests covering the public-route bypass, missing cookie, invalid JWT, and deleted-user cases, with `JwtService`/`PrismaService` mocked so nothing touches a real database. `app.controller.spec.ts` and `test/app.e2e-spec.ts` are still the two files `nest generate` scaffolds by default, testing the placeholder root route rather than anything Flowboard-specific, left in place since they still pass and cost nothing to keep.
+
+## API reference
+
+Every route is prefixed `/api` except the two public root routes. "Cookie" in the Auth column means the request needs a valid `flowboard_session` cookie, enforced by a global guard. Full request/response detail is in [architecture.md](architecture.md).
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | `/` | Hello-world root route | Public |
+| GET | `/health` | Health check, used by Render | Public |
+| POST | `/api/auth/guest` | Find-or-create the demo user, set session cookie | Public |
+| POST | `/api/auth/logout` | Clear the session cookie | Public |
+| GET | `/api/auth/me` | Current user from the session cookie | Cookie |
+| GET | `/api/projects` | List projects | Cookie |
+| POST | `/api/projects` | Create project | Cookie |
+| GET | `/api/projects/:id` | Get one project | Cookie |
+| PATCH | `/api/projects/:id` | Update project | Cookie |
+| DELETE | `/api/projects/:id` | Delete project, its tasks survive as unassigned | Cookie |
+| GET | `/api/projects/:id/tasks` | Tasks for a project, grouped by status | Cookie |
+| POST | `/api/projects/:id/tasks` | Create a task under a project | Cookie |
+| GET | `/api/tasks` | List tasks, filterable by `projectId`, `assigneeId`, `status`, `priority` | Cookie |
+| POST | `/api/tasks` | Create task, `projectId` optional | Cookie |
+| GET | `/api/tasks/:id` | One task with project, assignees, labels, subtasks, comments | Cookie |
+| PATCH | `/api/tasks/:id` | Update task, full edit surface | Cookie |
+| PATCH | `/api/tasks/:id/status` | Move task to a new status, minimal payload for board drag-and-drop | Cookie |
+| DELETE | `/api/tasks/:id` | Delete task, cascades subtasks and comments | Cookie |
+| GET | `/api/tasks/:id/activity` | Activity log entries for the Updates panel, newest first | Cookie |
+| GET | `/api/tasks/:taskId/subtasks` | List subtasks | Cookie |
+| POST | `/api/tasks/:taskId/subtasks` | Add subtask | Cookie |
+| GET | `/api/tasks/:taskId/subtasks/:id` | Get one subtask | Cookie |
+| PATCH | `/api/tasks/:taskId/subtasks/:id` | Update subtask | Cookie |
+| DELETE | `/api/tasks/:taskId/subtasks/:id` | Delete subtask | Cookie |
+| GET | `/api/tasks/:taskId/comments` | List comments, oldest first | Cookie |
+| POST | `/api/tasks/:taskId/comments` | Add comment, author is the session user | Cookie |
+| GET | `/api/labels` | List labels, used by the label picker | Cookie |
+| POST | `/api/labels` | Create label | Cookie |
+| GET | `/api/labels/:id` | Get one label | Cookie |
+| PATCH | `/api/labels/:id` | Update label | Cookie |
+| DELETE | `/api/labels/:id` | Delete label | Cookie |
+
+The label write routes have no UI behind them. Only the five seeded labels are selectable in the app, and tasks get labels through `PATCH /api/tasks/:id`.
 
 ## Folder structure
 
