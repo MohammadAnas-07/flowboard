@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { API_URL } from '@/lib/constants';
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -10,7 +9,8 @@ export default function LogoutButton() {
 
   async function handleLogout() {
     setLoading(true);
-    await fetch(`${API_URL}/api/auth/logout`, {
+    // Relative path — see next.config.ts rewrite / login page for why.
+    await fetch('/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
     });
