@@ -69,16 +69,20 @@ model Task {
   priority    Priority  @default(NO_PRIORITY)
   startDate   DateTime?
   dueDate     DateTime?
+  // Single document/link URL — deliberately not a separate table: no file
+  // upload, no multiple resources, just a text field for now (see task spec).
+  resourceUrl String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
 
-  assignees User[]    @relation("TaskAssignees")
-  labels    Label[]   @relation("TaskLabels")
-  subtasks  Subtask[]
-  comments  Comment[]
+  assignees  User[]         @relation("TaskAssignees")
+  labels     Label[]        @relation("TaskLabels")
+  subtasks   Subtask[]
+  comments   Comment[]
+  activities TaskActivity[]
 
   @@map("tasks")
 }
@@ -113,6 +117,24 @@ model Comment {
   author   User   @relation(fields: [authorId], references: [id])
 
   @@map("comments")
+}
+
+// Powers the task detail page's "Updates" activity log. Only written for the
+// fields the Figma actually shows an entry for: status, priority, dates,
+// assignee — not every field on Task (see TasksService for where these get
+// created). No actor/user field: with only the single reused guest account
+// in this app, "who changed it" wouldn't add information yet.
+model TaskActivity {
+  id        String   @id @default(uuid())
+  field     String
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_activities")
 }
 
 // Seeded values: Research, Design, Development, Testing, Deployment

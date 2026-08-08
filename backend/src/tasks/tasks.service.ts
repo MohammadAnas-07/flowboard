@@ -18,6 +18,12 @@ const TASK_INCLUDE = {
   comments: { include: { author: true }, orderBy: { createdAt: 'asc' as const } },
 };
 
+type TaskWithRelations = Prisma.TaskGetPayload<{ include: typeof TASK_INCLUDE }>;
+
+// Only these fields get an activity log entry — matches what the Figma's
+// "Updates" panel actually shows, not every editable field on Task.
+type TrackedField = 'status' | 'priority' | 'startDate' | 'dueDate' | 'assignee';
+
 @Injectable()
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
@@ -59,6 +65,7 @@ export class TasksService {
           priority: dto.priority,
           startDate: dto.startDate,
           dueDate: dto.dueDate,
+          resourceUrl: dto.resourceUrl,
           project: dto.projectId
             ? { connect: { id: dto.projectId } }
             : undefined,
@@ -75,8 +82,8 @@ export class TasksService {
   }
 
   async update(id: string, dto: UpdateTaskDto) {
-    await this.findOne(id);
-    return this.withCleanFkErrors(() =>
+    const existing = await this.findOne(id);
+    const updated = await this.withCleanFkErrors(() =>
       this.prisma.task.update({
         where: { id },
         data: {
@@ -86,6 +93,7 @@ export class TasksService {
           priority: dto.priority,
           startDate: dto.startDate,
           dueDate: dto.dueDate,
+          resourceUrl: dto.resourceUrl,
           project:
             dto.projectId !== undefined
               ? { connect: { id: dto.projectId } }
@@ -100,20 +108,32 @@ export class TasksService {
         include: TASK_INCLUDE,
       }),
     );
+    await this.logTrackedChanges(existing, updated);
+    return updated;
   }
 
   async updateStatus(id: string, dto: MoveTaskStatusDto) {
-    await this.findOne(id);
-    return this.prisma.task.update({
+    const existing = await this.findOne(id);
+    const updated = await this.prisma.task.update({
       where: { id },
       data: { status: dto.status },
       include: TASK_INCLUDE,
     });
+    await this.logTrackedChanges(existing, updated);
+    return updated;
   }
 
   async remove(id: string) {
     await this.findOne(id);
     await this.prisma.task.delete({ where: { id } });
+  }
+
+  async getActivity(taskId: string) {
+    await this.assertExists(taskId);
+    return this.prisma.taskActivity.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   /** Confirms a task exists, for use by nested Subtask/Comment modules. */
@@ -124,6 +144,52 @@ export class TasksService {
     });
     if (!exists) {
       throw new NotFoundException(`Task ${id} not found`);
+    }
+  }
+
+  private async logTrackedChanges(
+    before: TaskWithRelations,
+    after: TaskWithRelations,
+  ) {
+    const entries: {
+      field: TrackedField;
+      oldValue: string | null;
+      newValue: string | null;
+    }[] = [];
+
+    if (before.status !== after.status) {
+      entries.push({ field: 'status', oldValue: before.status, newValue: after.status });
+    }
+    if (before.priority !== after.priority) {
+      entries.push({ field: 'priority', oldValue: before.priority, newValue: after.priority });
+    }
+
+    const beforeStart = before.startDate?.toISOString() ?? null;
+    const afterStart = after.startDate?.toISOString() ?? null;
+    if (beforeStart !== afterStart) {
+      entries.push({ field: 'startDate', oldValue: beforeStart, newValue: afterStart });
+    }
+
+    const beforeDue = before.dueDate?.toISOString() ?? null;
+    const afterDue = after.dueDate?.toISOString() ?? null;
+    if (beforeDue !== afterDue) {
+      entries.push({ field: 'dueDate', oldValue: beforeDue, newValue: afterDue });
+    }
+
+    const beforeAssigneeIds = before.assignees.map((a) => a.id).sort().join(',');
+    const afterAssigneeIds = after.assignees.map((a) => a.id).sort().join(',');
+    if (beforeAssigneeIds !== afterAssigneeIds) {
+      entries.push({
+        field: 'assignee',
+        oldValue: before.assignees.map((a) => a.name ?? a.email).join(', ') || null,
+        newValue: after.assignees.map((a) => a.name ?? a.email).join(', ') || null,
+      });
+    }
+
+    if (entries.length > 0) {
+      await this.prisma.taskActivity.createMany({
+        data: entries.map((e) => ({ taskId: after.id, ...e })),
+      });
     }
   }
 
