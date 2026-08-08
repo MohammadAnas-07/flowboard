@@ -3,16 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Avatar } from '@/components/ui/avatar';
 import type { User } from '@/lib/types';
-import {
-  ChecklistIcon,
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  FolderIcon,
-} from './icons';
+import { ChecklistIcon, ChevronLeftIcon, ChevronRightIcon, FolderIcon } from './icons';
 import LogoutButton from './logout-button';
+import { UserMenu } from './user-menu';
 
 const COLLAPSE_KEY = 'flowboard:sidebar-collapsed';
 
@@ -50,22 +44,7 @@ export function Sidebar({ user }: { user: User }) {
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      {/* User avatar + name + chevron — stub: opens theme/settings dropdown in a later feature */}
-      <button
-        type="button"
-        title="Account (coming soon)"
-        className="flex items-center gap-2 border-b border-black/[.08] px-3 py-3 text-left transition-colors hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-white/[.08]"
-      >
-        <Avatar user={user} size="sm" />
-        {!collapsed && (
-          <>
-            <span className="flex-1 truncate text-sm font-medium text-black dark:text-zinc-50">
-              {user.name ?? user.email}
-            </span>
-            <ChevronDownIcon className="h-4 w-4 shrink-0 text-zinc-400" />
-          </>
-        )}
-      </button>
+      <UserMenu user={user} collapsed={collapsed} />
 
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {!collapsed && (
@@ -84,7 +63,7 @@ export function Sidebar({ user }: { user: User }) {
                 title={item.label}
                 className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50'
+                    ? 'bg-accent/10 text-accent'
                     : 'text-zinc-600 hover:bg-black/[.04] dark:text-zinc-400 dark:hover:bg-white/[.08]'
                 }`}
               >
