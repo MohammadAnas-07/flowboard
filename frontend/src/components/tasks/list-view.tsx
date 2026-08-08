@@ -1,0 +1,154 @@
+'use client';
+
+import { useState } from 'react';
+import { Avatar } from '@/components/ui/avatar';
+import { DataTable, type Column } from '@/components/shared/data-table';
+import { ChevronDownIcon, ChevronRightIcon } from '@/components/layout/icons';
+import { ALL_STATUSES, STATUS_LABELS, type Task } from '@/lib/types';
+import { DueDateBadge, LabelPill, PriorityBadge, StatusBadge } from './status-priority-badges';
+
+export const TASK_FIELD_OPTIONS = [
+  { key: 'priority', label: 'Priority' },
+  { key: 'members', label: 'Members' },
+  { key: 'dueDate', label: 'Due Date' },
+  { key: 'labels', label: 'Labels' },
+  { key: 'status', label: 'Status' },
+  { key: 'reporter', label: 'Reporter' },
+];
+
+function buildColumns(visible: Set<string>, onDelete: (id: string) => void): Column<Task>[] {
+  const columns: Column<Task>[] = [
+    { key: 'title', header: 'Task', render: (t) => (
+      <span className="font-medium text-black dark:text-zinc-50">{t.title}</span>
+    ) },
+  ];
+
+  if (visible.has('priority')) {
+    columns.push({ key: 'priority', header: 'Priority', render: (t) => <PriorityBadge priority={t.priority} /> });
+  }
+  if (visible.has('members')) {
+    columns.push({
+      key: 'members',
+      header: 'Members',
+      render: (t) =>
+        t.assignees.length ? (
+          <div className="flex -space-x-1.5">
+            {t.assignees.map((u) => (
+              <Avatar key={u.id} user={u} size="sm" />
+            ))}
+          </div>
+        ) : (
+          <span className="text-zinc-400">—</span>
+        ),
+    });
+  }
+  if (visible.has('dueDate')) {
+    columns.push({
+      key: 'dueDate',
+      header: 'Due Date',
+      render: (t) => t.dueDate ? <DueDateBadge dueDate={t.dueDate} /> : <span className="text-zinc-400">—</span>,
+    });
+  }
+  if (visible.has('labels')) {
+    columns.push({
+      key: 'labels',
+      header: 'Labels',
+      render: (t) =>
+        t.labels.length ? (
+          <div className="flex flex-wrap gap-1">
+            {t.labels.map((l) => (
+              <LabelPill key={l.id} name={l.name} />
+            ))}
+          </div>
+        ) : (
+          <span className="text-zinc-400">—</span>
+        ),
+    });
+  }
+  if (visible.has('status')) {
+    columns.push({ key: 'status', header: 'Status', render: (t) => <StatusBadge status={t.status} /> });
+  }
+  if (visible.has('reporter')) {
+    // Not tracked in the data model yet (no createdBy/reporter field on
+    // Task) — shown as a placeholder so the Figma's column set is still
+    // represented. See architecture.md Known Deviations.
+    columns.push({ key: 'reporter', header: 'Reporter', render: () => <span className="text-zinc-400">—</span> });
+  }
+
+  columns.push({
+    key: 'actions',
+    header: 'Actions',
+    render: (t) => (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(t.id);
+        }}
+        className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+      >
+        Delete
+      </button>
+    ),
+  });
+
+  return columns;
+}
+
+export function ListView({
+  tasks,
+  visibleFields,
+  onDeleteTask,
+}: {
+  tasks: Task[];
+  visibleFields: Set<string>;
+  onDeleteTask: (id: string) => void;
+}) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const columns = buildColumns(visibleFields, onDeleteTask);
+
+  return (
+    <div className="flex flex-col gap-4 overflow-y-auto p-4">
+      {ALL_STATUSES.map((status) => {
+        const sectionTasks = tasks.filter((t) => t.status === status);
+        const isCollapsed = collapsed.has(status);
+        return (
+          <div
+            key={status}
+            className="overflow-hidden rounded-lg border border-black/[.08] dark:border-white/[.145]"
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setCollapsed((prev) => {
+                  const next = new Set(prev);
+                  next.has(status) ? next.delete(status) : next.add(status);
+                  return next;
+                })
+              }
+              className="flex w-full items-center gap-2 bg-zinc-50 px-4 py-2 text-left text-sm font-medium text-zinc-700 dark:bg-zinc-950/60 dark:text-zinc-300"
+            >
+              {isCollapsed ? (
+                <ChevronRightIcon className="h-4 w-4 text-zinc-400" />
+              ) : (
+                <ChevronDownIcon className="h-4 w-4 text-zinc-400" />
+              )}
+              {STATUS_LABELS[status]}
+              <span className="rounded-full bg-zinc-200 px-1.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                {sectionTasks.length}
+              </span>
+            </button>
+            {!isCollapsed && (
+              <DataTable
+                columns={columns}
+                rows={sectionTasks}
+                rowKey={(t) => t.id}
+                emptyMessage="No tasks here."
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
