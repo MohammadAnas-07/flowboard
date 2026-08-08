@@ -34,6 +34,12 @@ export class TasksController {
     return this.tasksService.findOne(id);
   }
 
+  // Powers the task detail page's "Updates" panel.
+  @Get(':id/activity')
+  getActivity(@Param('id') id: string) {
+    return this.tasksService.getActivity(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateTaskDto) {
     return this.tasksService.update(id, dto);

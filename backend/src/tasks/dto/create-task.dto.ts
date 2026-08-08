@@ -36,6 +36,11 @@ export class CreateTaskDto {
   dueDate?: string;
 
   @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  resourceUrl?: string;
+
+  @IsOptional()
   @IsUUID()
   projectId?: string;
 
