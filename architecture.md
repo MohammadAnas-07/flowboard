@@ -40,11 +40,12 @@ No migrations have been run against a real database yet (schema is validated and
 ### API Communication
 The Next.js client communicates with the NestJS backend via a RESTful JSON API. Auth is via `httpOnly` JWT cookie sent automatically with each request.
 ### Auth Flow
-1. User lands on `/login`.
-2. Guest Login: client calls `POST /api/auth/guest`, backend creates or reuses a demo user, returns a JWT set as an `httpOnly` cookie.
+**Implemented and tested end-to-end** (guest path only — see Known Deviations, Section 7, for Google).
+1. User lands on `/login`. Next.js `proxy.ts` (the App Router's request-interception layer — called `middleware` before Next.js 16) redirects any unauthenticated request for a non-`/login` route to `/login`, and redirects an already-authenticated visit to `/login` itself onward to `/tasks`. This check is presence-only (does the `flowboard_session` cookie exist) — it's a UX optimistic-redirect, not the security boundary, since the frontend has no way to verify the JWT signature without sharing the backend's secret.
+2. Guest Login: client calls `POST /api/auth/guest`, backend finds-or-creates a single fixed demo `User` row (reused across every guest login, not one row per click), signs a JWT (`sub` = user id, 7-day expiry), and sets it as a cookie named `flowboard_session` — `httpOnly` always; `secure: true` + `sameSite: 'none'` in production (required for the cross-origin Vercel↔Render request), relaxed to `secure: false` + `sameSite: 'lax'` in local dev since Secure cookies are rejected over plain `http://localhost`.
 3. Google Login: **stubbed, not implemented** — see Known Deviations (Section 7). Button is present in the UI to match the Figma design but is disabled.
-4. All subsequent requests carry the cookie; a global `AuthGuard` on the NestJS side rejects unauthenticated requests except on the guest-login and health-check routes.
-TODO: update this section once auth is actually implemented — confirm it matches reality, not the plan.
+4. All subsequent requests carry the cookie. A global `AuthGuard` (`APP_GUARD` in `app.module.ts`) verifies the JWT signature and loads the user from the DB on every route, except ones marked with the `@Public()` decorator (`/`, `/health`, `POST /api/auth/guest`, `POST /api/auth/logout`). This guard — not the frontend's presence check — is the actual security boundary.
+5. `GET /api/auth/me` returns the authenticated user (via `@CurrentUser()`, populated by the guard). `POST /api/auth/logout` clears the cookie.
 ---
 ## 5. Infrastructure Diagram
 ```mermaid
@@ -67,24 +68,24 @@ flowchart TD
 TODO: this diagram is intentionally minimal for the skeleton stage — expand if any external services (e.g. file storage, email) get added.
 ---
 ## 6. API Reference
-TODO: fill in as each module is built. Keep this table accurate — it's the fastest way for an evaluator to understand scope without reading every controller.
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| POST | `/api/auth/guest` | Create/reuse guest session, set cookie | No |
-| POST | `/api/auth/logout` | Clear cookie | No |
-| GET | `/api/auth/me` | Get current user | Cookie |
-| GET | `/api/projects` | List projects | ✅ |
-| POST | `/api/projects` | Create project | ✅ |
-| GET | `/api/projects/:id/tasks` | List tasks grouped by status | ✅ |
-| POST | `/api/projects/:id/tasks` | Create task | ✅ |
-| PATCH | `/api/tasks/:id` | Update task (incl. status move) | ✅ |
-| POST | `/api/tasks/:id/subtasks` | Add subtask | ✅ |
-| POST | `/api/tasks/:id/comments` | Add comment | ✅ |
+TODO: fill in as each module is built. Keep this table accurate — it's the fastest way for an evaluator to understand scope without reading every controller. "Status" reflects what's actually deployed, not the plan.
+| Method | Path | Description | Auth | Status |
+|--------|------|-------------|------|--------|
+| POST | `/api/auth/guest` | Find-or-create the demo user, set session cookie | No | ✅ Implemented |
+| POST | `/api/auth/logout` | Clear session cookie | No | ✅ Implemented |
+| GET | `/api/auth/me` | Get current user from the session cookie | Cookie | ✅ Implemented |
+| GET | `/api/projects` | List projects | ✅ | TODO |
+| POST | `/api/projects` | Create project | ✅ | TODO |
+| GET | `/api/projects/:id/tasks` | List tasks grouped by status | ✅ | TODO |
+| POST | `/api/projects/:id/tasks` | Create task | ✅ | TODO |
+| PATCH | `/api/tasks/:id` | Update task (incl. status move) | ✅ | TODO |
+| POST | `/api/tasks/:id/subtasks` | Add subtask | ✅ | TODO |
+| POST | `/api/tasks/:id/comments` | Add comment | ✅ | TODO |
 ---
 ## 7. Known Deviations from the Figma Design
 Documented as they're made, not reconstructed from memory at submission time.
 - TODO: Backlog status — the Figma task detail panel shows a "Backlog" status not present as a Kanban column. Assumption: Backlog tasks exist pre-board and don't render until moved to a column. [Confirm or revise once board is built.]
-- TODO: "Login with Google" button is present in the UI to match Figma fidelity but is a disabled stub — full OAuth setup was out of scope given the assessment timeline. Guest Login is the fully functional auth path.
+- Confirmed: the `/login` page's "Login with Google" button is present but disabled (`aria-disabled`, no click handler) — full OAuth setup was out of scope given the assessment timeline. Guest Login (`POST /api/auth/guest`) is the fully functional, tested auth path.
 - TODO: add any further deviations here as they come up during the build. Don't skip this — it's an explicit grading criterion.
 ---
 ## 8. Testing Strategy
