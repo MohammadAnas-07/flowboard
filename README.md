@@ -25,17 +25,17 @@ You need Node.js (18 or newer) and a Postgres database. Neon's free tier works f
 
 ```mermaid
 flowchart TD
-    A[Clone the repo] --> B["Copy backend/.env.example to backend/.env"]
+    A["Clone the repo"] --> B["Copy backend/.env.example to backend/.env"]
     B --> C["Copy frontend/.env.example to frontend/.env.local"]
-    C --> D[Fill in real values in both .env files]
+    C --> D["Fill in real values in both env files"]
     D --> E["cd backend, npm install"]
-    E --> F[npm run prisma:migrate]
-    F --> G[npm run prisma:seed]
-    G --> H["npm run start:dev — backend on :4000"]
+    E --> F["npm run prisma:migrate"]
+    F --> G["npm run prisma:seed"]
+    G --> H["npm run start:dev, backend on port 4000"]
     H --> I["cd frontend, npm install"]
-    I --> J["npm run dev — frontend on :3000"]
-    J --> K[Open localhost:3000]
-    K --> L[Click Continue as Guest]
+    I --> J["npm run dev, frontend on port 3000"]
+    J --> K["Open localhost:3000"]
+    K --> L["Click Continue as Guest"]
 ```
 
 ### 1. Clone and configure the backend
