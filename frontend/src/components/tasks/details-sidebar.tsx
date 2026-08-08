@@ -53,7 +53,7 @@ export function DetailsSidebar({
   onLabelsChange,
 }: DetailsSidebarProps) {
   return (
-    <aside className="flex w-80 shrink-0 flex-col gap-5 overflow-y-auto border-l border-black/[.08] p-4 dark:border-white/[.145]">
+    <aside className="flex w-full shrink-0 flex-col gap-5 border-t border-black/[.08] p-4 dark:border-white/[.145] lg:w-80 lg:overflow-y-auto lg:border-l lg:border-t-0">
       <div>
         <h3 className="mb-3 text-sm font-semibold text-black dark:text-zinc-50">Details</h3>
         <div className="flex flex-col gap-3">
