@@ -28,7 +28,7 @@ TODO: confirm this stays accurate once auth and data layers are actually wired u
 ## 3. Data Model
 Implemented in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma). Summary below — treat the schema file as the source of truth if these ever drift. Migrated and live against the Neon database.
 - **User** — id, email, name, avatar, isGuest, theme, accentColor
-- **Project** — id, name, priority, leadId (→ User, nullable), dueDate
+- **Project** — id, name, priority, leadId (→ User, nullable), dueDate. Deleting a project does **not** delete its tasks — Prisma's default `SET NULL` on the optional `Task.projectId` relation applies, so tasks survive and become unassigned rather than being destroyed. Verified live (Section 6 test pass), kept deliberately: task history shouldn't vanish because the project it was filed under got deleted.
 - **Task** — id, title, description, status (`BACKLOG` / `TODO` / `DOING` / `COMPLETED` / `ON_HOLD`), priority (`NO_PRIORITY` / `URGENT` / `HIGH` / `MEDIUM` / `LOW`), assignees (↔ User, many-to-many), startDate, dueDate, projectId (nullable), labels (↔ Label, many-to-many)
 - **Subtask** — same core fields as Task (including assignees, i.e. members — added after the initial draft, since the plan called for member support here too), parentTaskId (→ Task, cascade delete)
 - **Comment** — taskId, authorId, body, createdAt
