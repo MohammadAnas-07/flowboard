@@ -5,12 +5,42 @@
 import type {
   Comment,
   Label,
+  Priority,
   Project,
   Status,
   Subtask,
   Task,
+  TaskActivity,
   TasksGroupedByStatus,
 } from './types';
+
+// Shapes accepted by the create/update endpoints — distinct from the Task/
+// Subtask *response* shapes (which nest full `labels`/`assignees` objects,
+// not the id arrays the backend's DTOs expect for writes).
+export interface TaskInput {
+  title?: string;
+  description?: string;
+  status?: Status;
+  priority?: Priority;
+  // null clears the date (vs. undefined, which leaves it untouched) — the
+  // backend's IsOptional validators accept null the same as a missing key.
+  startDate?: string | null;
+  dueDate?: string | null;
+  resourceUrl?: string;
+  projectId?: string;
+  assigneeIds?: string[];
+  labelIds?: string[];
+}
+
+export interface SubtaskInput {
+  title?: string;
+  description?: string;
+  status?: Status;
+  priority?: Priority;
+  startDate?: string;
+  dueDate?: string;
+  assigneeIds?: string[];
+}
 
 export class ApiError extends Error {
   constructor(
@@ -62,11 +92,11 @@ export function getTask(id: string): Promise<Task> {
   return request(`/api/tasks/${id}`);
 }
 
-export function createTask(data: Partial<Task> & { title: string }): Promise<Task> {
+export function createTask(data: TaskInput & { title: string }): Promise<Task> {
   return request('/api/tasks', { method: 'POST', body: JSON.stringify(data) });
 }
 
-export function updateTask(id: string, data: Partial<Task>): Promise<Task> {
+export function updateTask(id: string, data: TaskInput): Promise<Task> {
   return request(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 
@@ -79,6 +109,10 @@ export function updateTaskStatus(id: string, status: Status): Promise<Task> {
 
 export function deleteTask(id: string): Promise<void> {
   return request(`/api/tasks/${id}`, { method: 'DELETE' });
+}
+
+export function getTaskActivity(id: string): Promise<TaskActivity[]> {
+  return request(`/api/tasks/${id}/activity`);
 }
 
 // ---- Projects ----
@@ -108,7 +142,7 @@ export function getProjectTasksGrouped(id: string): Promise<TasksGroupedByStatus
 
 export function createProjectTask(
   projectId: string,
-  data: Partial<Task> & { title: string },
+  data: TaskInput & { title: string },
 ): Promise<Task> {
   return request(`/api/projects/${projectId}/tasks`, {
     method: 'POST',
@@ -123,12 +157,16 @@ export function getSubtasks(taskId: string): Promise<Subtask[]> {
 
 export function createSubtask(
   taskId: string,
-  data: Partial<Subtask> & { title: string },
+  data: SubtaskInput & { title: string },
 ): Promise<Subtask> {
   return request(`/api/tasks/${taskId}/subtasks`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+export function deleteSubtask(taskId: string, id: string): Promise<void> {
+  return request(`/api/tasks/${taskId}/subtasks/${id}`, { method: 'DELETE' });
 }
 
 // ---- Comments ----

@@ -84,6 +84,7 @@ export interface Task {
   priority: Priority;
   startDate: string | null;
   dueDate: string | null;
+  resourceUrl: string | null;
   createdAt: string;
   updatedAt: string;
   projectId: string | null;
@@ -95,3 +96,15 @@ export interface Task {
 }
 
 export type TasksGroupedByStatus = Record<Status, Task[]>;
+
+// Only ever created server-side for these fields — see backend TasksService.
+export type ActivityField = 'status' | 'priority' | 'startDate' | 'dueDate' | 'assignee';
+
+export interface TaskActivity {
+  id: string;
+  field: ActivityField;
+  oldValue: string | null;
+  newValue: string | null;
+  createdAt: string;
+  taskId: string;
+}
