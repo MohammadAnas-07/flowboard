@@ -6,7 +6,7 @@ Images referenced by the root `README.md`. Filenames are fixed — the README li
 | --- | --- | --- |
 | `board.png` | `/tasks`, **Board** toggle (top right) | Four columns — To Do, Doing, Completed, On Hold. Backlog is deliberately absent from the board (`BOARD_STATUSES` in `frontend/src/lib/types.ts`, architecture.md Section 7); it only appears in the list view. Twelve of the fifteen tasks showing is correct, not a cropped capture. |
 | `projects.png` | `/projects` | All three projects with priority, lead and due date. |
-| `tasks.png` | `/tasks`, **List** toggle | Status groups including Backlog, which the board omits. The list is an inner scroll container, so a full-page capture can slice rows at the stitch boundaries — that's the capture tool, not a layout bug. |
+| `tasks.png` | `/tasks`, **List** toggle | Status groups including Backlog, which the board omits. Rows should be whole — if any are sliced, the capture predates the flex-shrink fix in `list-view.tsx` and needs retaking. |
 | `task-detail.png` | `/tasks/<id>` | Open **Webhook retry + idempotency handling** — 4 subtasks, 3 comments, 2 labels and a resource link. Other tasks have empty subtask and comment sections. |
 | `settings.png` | `/settings` | Profile, Theme or Color tab. |
 
