@@ -9,32 +9,42 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)
 
-A task and project board built for the AbleSpace Full Stack Developer (Fresher) technical assessment. Create projects, add tasks with a status and priority, drag them across a Kanban board or work from a list view, break tasks into subtasks, comment on them, and filter the list/board by status or priority.
+A task and project board built for the AbleSpace Full Stack Developer (Fresher) technical assessment. Create projects, add tasks with a status and priority, drag them across a Kanban board or work from a list view, break tasks into subtasks, comment on them, and filter the list or board by status or priority.
 
-This repo is Part 1 (the build). Part 2 is the product-understanding submission, not written yet. It'll be linked here once it exists, either as a `PART2.md` in this repo or a Google Doc/video link.
+This repo is Part 1, the build. Part 2 is a separate product-understanding submission: a short video walkthrough of AbleSpace's own Caseload workflow.
+
+## Demo video
+
+**Watch this first if you're short on time:** [1 minute 19 second walkthrough of the app](https://www.loom.com/share/bf44be02adef471695fb26869551ea1c), no sign-in needed. Covers the board, filtering, task detail, and theming in under two minutes.
+
+## Features
+
+- **Guest authentication** — a JWT in an `httpOnly` cookie, checked by a global guard on every route except the ones explicitly marked public. No signup friction, click one button and you're in.
+- **Kanban board with drag-and-drop** — move a task between To Do, Doing, Completed, and On Hold. The move persists on drop, with an optimistic update that rolls back if the API call fails.
+- **List view with real filtering** — the same "Fields" control does two things depending on the column: most fields just show or hide, but Status and Priority turn into an actual value filter, and both filters combine rather than replace each other.
+- **Full task detail** — inline title and description editing, a label picker, subtasks with their own status, a comment thread, and an activity log that's fed by server-side change tracking, not guessed at on the frontend.
+- **Two independent theme settings** — light or dark mode, and a separate six-option accent color, both persisted and both applied before first paint so there's no flash of the wrong theme.
+- **Responsive at every width** — a hamburger drawer sidebar on small screens, and tables that switch to stacked cards instead of squeezing five columns onto a phone.
+- **CI on every push** — lint, backend unit and e2e tests against a throwaway Postgres container, and a frontend production build, gated by a branch ruleset on `main`.
 
 ## Live demo
 
 - App: https://flowboard-zeta-eight.vercel.app
 - API: https://flowboard-api-9074.onrender.com (health check at `/health`)
 
-Click "Continue as Guest" on the login page. There's no real account system: guest login always resolves to the same shared demo user, so profile edits on the Settings page are local to your browser session and don't persist. Google login is a disabled stub. [Known limitations](#known-limitations) covers both, and the rest of the boundaries.
+Click "Continue as Guest" on the login page. There's no real account system — guest login always resolves to the same shared demo user, so profile edits on the Settings page are local to your browser session and don't persist. Google login is a disabled stub. [Known limitations](#known-limitations) covers both, and the rest of the boundaries.
 
 The backend runs on Render's free tier, which sleeps when idle. If the first load hangs, give it 30 to 60 seconds to cold-start.
-
-## Demo video
-
-[Watch a walkthrough of the app](https://www.loom.com/share/bf44be02adef471695fb26869551ea1c) — 1 minute 19 seconds, no sign-in needed.
 
 ## Screenshots
 
 Taken against the deployed app with the shared guest account, so what's shown here is what you get by clicking "Continue as Guest" on the live demo.
 
-**Board view** — tasks grouped by status, dragged between columns with `@dnd-kit`. The move persists on drop, so a refresh keeps the new column. Backlog has no column by design — backlog tasks exist before the board and show up in the list view instead ([architecture.md](architecture.md) Section 7).
+**Board view** — tasks grouped by status, dragged between columns with `@dnd-kit`. Backlog has no column by design; backlog tasks exist before the board and show up in the list view instead ([architecture.md](architecture.md) Section 7).
 
 ![Kanban board showing tasks grouped by status](screenshots/board.png)
 
-**Projects** — every project with its priority, lead and due date, plus how far along its tasks are.
+**Projects** — every project with its priority, lead, and due date, plus how far along its tasks are.
 
 ![Projects list](screenshots/projects.png)
 
@@ -50,13 +60,37 @@ Taken against the deployed app with the shared guest account, so what's shown he
 
 ![Settings page showing the guest profile form](screenshots/settings.png)
 
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Client [Vercel]
+        Next[Next.js App Router]
+    end
+
+    subgraph Server [Render]
+        API[NestJS REST API]
+        Guard[Global Auth Guard - JWT]
+    end
+
+    subgraph Storage
+        DB[(PostgreSQL - Neon)]
+    end
+
+    Next <-->|HTTPS / REST, httpOnly cookie| API
+    API --> Guard
+    API <-->|Prisma Client| DB
+```
+
+Frontend and backend are two separate deployments talking over HTTPS, not a monolith. Auth is stateless — the JWT carries everything the guard needs, so there's no server-side session store to keep in sync if this ever ran on more than one instance. The full reasoning behind each technology choice, the data model, and every deviation from the original Figma design are in [architecture.md](architecture.md), including a Scaling Considerations section on what would actually need to change to run this beyond a single free-tier instance.
+
 ## Tech stack
 
-Frontend is Next.js 16 (App Router), React 19, TypeScript, and Tailwind CSS v4. State is plain React (`useState`/`useEffect`) plus `fetch`, no Redux or React Query. Board drag-and-drop uses `@dnd-kit`, dropdowns and menus use Radix UI, dates use `date-fns` and `react-day-picker`. Light/dark mode and an independent accent-color setting both run through `next-themes` plus a small custom provider, persisted to `localStorage`.
+**Frontend** — Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4. State is plain React (`useState`/`useEffect`) plus `fetch`, no Redux or React Query. Drag-and-drop is `@dnd-kit`, dropdowns and menus are Radix UI, dates are `date-fns` and `react-day-picker`. Theming runs through `next-themes` plus a small custom provider, persisted to `localStorage`.
 
-Backend is NestJS 11, TypeScript, Prisma 6 as the ORM, PostgreSQL as the database. Auth is a JWT in an `httpOnly` cookie, checked by a global guard on every route except the ones explicitly marked `@Public()`. Every write goes through a `class-validator` DTO before it reaches Prisma.
+**Backend** — NestJS 11, TypeScript, Prisma 6, PostgreSQL. Every write goes through a `class-validator` DTO before it reaches Prisma.
 
-Frontend deploys to Vercel, backend to Render (via `render.yaml`), database is Neon's serverless Postgres. `architecture.md` has the reasoning behind each of those choices, plus the full data model and API reference.
+**Infrastructure** — frontend on Vercel, backend on Render via `render.yaml`, database on Neon's serverless Postgres.
 
 ## What's built
 
@@ -90,7 +124,7 @@ The boundaries here are chosen, not accidental. Each one has a reason:
 - **One shared guest account, not real multi-user.** Every visitor to the live demo reads and writes the same tasks, projects, and comments. Assignees always resolve to that single demo user because there's no second account to assign anything to. Since that also means any visitor can delete the demo data, a manual `Restore demo data` workflow re-seeds it on request — the seed only recreates what's missing, so it never touches anything a visitor added.
 - **Settings profile edits are session-local.** Avatar, name, email, title, and username live in component state and never reach the backend. With a single shared guest row, persisting them would leak one visitor's edits into another's session. Theme and accent color are the exception: those persist to `localStorage` because they're device-local display preferences, not identity.
 - **The funnel icon next to "Fields" is decorative.** The source Figma defines no click behavior or panel for it, so it's drawn to match the design but is inert: `aria-hidden`, no handler, no pointer events. Filtering lives in the Fields button next to it, which is the real control.
-- **"Reporter" always renders as a dash.** It's offered as a list column and shown in the task Details sidebar to match the Figma, but `Task` has no `reporter`/`createdBy` field. Showing the gap beat silently dropping the field. Same story for "Team", which falls back to the task's project name since there's no `Team` model.
+- **"Reporter" always renders as a dash.** It's offered as a list column and shown in the task Details sidebar to match the Figma, but `Task` has no `reporter`/`createdBy` field. Showing the gap beat silently dropping the field. Same story for "Team," which falls back to the task's project name since there's no `Team` model.
 - **Render's free tier sleeps after inactivity**, so the first request following an idle period takes roughly 30 to 60 seconds while the backend cold-starts. Everything after that is normal speed. That's the hosting tier, not the app.
 - **Filters and column visibility reset on reload.** Both are plain component state. The Figma gives no indication they should survive a refresh, and there's no per-user record to store them against anyway.
 - **No file upload.** A task's Resources row takes a URL, and avatars are initials on a color you pick. There's no storage bucket in the stack.
@@ -174,15 +208,15 @@ Backend only, frontend has no test suite (see architecture.md's Known Limitation
 
 ```bash
 cd backend
-npm test        # unit tests: DTO validation, AuthGuard
+npm test          # unit tests: DTO validation, AuthGuard
 npm run test:e2e  # single e2e smoke test against a real Nest app instance
 ```
 
-Most of the suite is real: `class-validator` DTO tests for `CreateTaskDto` (accepts valid payloads, rejects bad enums/UUIDs/dates), and `AuthGuard` tests covering the public-route bypass, missing cookie, invalid JWT, and deleted-user cases, with `JwtService`/`PrismaService` mocked so nothing touches a real database. `app.controller.spec.ts` and `test/app.e2e-spec.ts` are still the two files `nest generate` scaffolds by default, testing the placeholder root route rather than anything Flowboard-specific, left in place since they still pass and cost nothing to keep.
+Most of the suite is real: `class-validator` DTO tests for `CreateTaskDto` (accepts valid payloads, rejects bad enums, UUIDs, and dates), and `AuthGuard` tests covering the public-route bypass, missing cookie, invalid JWT, and deleted-user cases, with `JwtService`/`PrismaService` mocked so nothing touches a real database. `app.controller.spec.ts` and `test/app.e2e-spec.ts` are still the two files `nest generate` scaffolds by default, testing the placeholder root route rather than anything Flowboard-specific, left in place since they still pass and cost nothing to keep.
 
 ## API reference
 
-Every route is prefixed `/api` except the two public root routes. "Cookie" in the Auth column means the request needs a valid `flowboard_session` cookie, enforced by a global guard. Full request/response detail is in [architecture.md](architecture.md).
+Every route is prefixed `/api` except the two public root routes. "Cookie" in the Auth column means the request needs a valid `flowboard_session` cookie, enforced by a global guard. Full request and response detail is in [architecture.md](architecture.md).
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
@@ -222,7 +256,7 @@ The label write routes have no UI behind them. Only the five seeded labels are s
 
 ## Folder structure
 
-Real tree of the tracked repo, `node_modules`/build output excluded:
+Real tree of the tracked repo, `node_modules` and build output excluded:
 
 ```
 ├── backend
@@ -339,7 +373,7 @@ Real tree of the tracked repo, `node_modules`/build output excluded:
 └── render.yaml
 ```
 
-`backend/src` is organized by feature module (`tasks`, `projects`, `subtasks`, `comments`, `labels`, `auth`), each with its own controller, service, and DTOs, the structure `nest generate` produces. `frontend/src/app` uses two route groups: `(app)` is the authenticated shell with the main sidebar, `(settings)` is the standalone settings page, split out so it can have its own "Back to app" nav instead of inheriting the main one. `frontend/src/components/shared` holds the pieces reused across features (the data table backs the task list, project list, and subtasks table; the dropdown primitives back the Fields filter, label picker, and status/priority pickers), rather than each feature building its own copy.
+`backend/src` is organized by feature module (`tasks`, `projects`, `subtasks`, `comments`, `labels`, `auth`), each with its own controller, service, and DTOs, the structure `nest generate` produces. `frontend/src/app` uses two route groups: `(app)` is the authenticated shell with the main sidebar, `(settings)` is the standalone settings page, split out so it can have its own "Back to app" nav instead of inheriting the main one. `frontend/src/components/shared` holds the pieces reused across features, since the data table backs the task list, project list, and subtasks table, and the dropdown primitives back the Fields filter, label picker, and status and priority pickers, rather than each feature building its own copy.
 
 See [architecture.md](architecture.md) for the data model, the full API reference, and the deviations from the original Figma design.
 
