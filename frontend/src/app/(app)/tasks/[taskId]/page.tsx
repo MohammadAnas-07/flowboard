@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeftIcon } from '@/components/layout/icons';
 import { Avatar } from '@/components/ui/avatar';
 import { CommentsThread } from '@/components/tasks/comments-thread';
@@ -38,28 +38,38 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [t, s, c, a] = await Promise.all([
-        getTask(taskId),
-        getSubtasks(taskId),
-        getComments(taskId),
-        getTaskActivity(taskId),
-      ]);
-      setTask(t);
-      setSubtasks(s);
-      setComments(c);
-      setActivity(a);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load task');
-    } finally {
-      setLoading(false);
-    }
-  }, [taskId]);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    // Guards against a slow response for the previous taskId landing after
+    // navigation and overwriting the new task's data.
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [t, s, c, a] = await Promise.all([
+          getTask(taskId),
+          getSubtasks(taskId),
+          getComments(taskId),
+          getTaskActivity(taskId),
+        ]);
+        if (cancelled) return;
+        setTask(t);
+        setSubtasks(s);
+        setComments(c);
+        setActivity(a);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : 'Failed to load task');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
 
   async function applyTaskUpdate(patch: TaskInput) {
     if (!task) return;

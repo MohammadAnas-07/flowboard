@@ -68,7 +68,7 @@ Shipped and working end to end against the deployed database:
 - [x] Session-local settings page with its own nav, separate from the main app shell
 - [x] Responsive layouts at phone, tablet, and desktop widths, including a hamburger drawer sidebar and table-to-card switching
 - [x] Backend unit tests for DTO validation and the auth guard
-- [x] GitHub Actions CI on every push and PR: backend unit and e2e tests against a throwaway Postgres service container, plus a frontend production build
+- [x] GitHub Actions CI on every push and PR: lint for both packages, backend unit and e2e tests against a throwaway Postgres service container, and a frontend production build
 
 Deliberately out of scope for the 14-day window, in rough order of what I'd pick up first:
 
@@ -76,7 +76,7 @@ Deliberately out of scope for the 14-day window, in rough order of what I'd pick
 - [ ] Persisted per-user accounts, which is the unlock for real assignees, per-user settings, and anything multi-user
 - [ ] Automated frontend tests
 - [ ] Real-time collaboration, so two open tabs stay in sync without a reload
-- [ ] Extending CI to lint, and actually gating merges on it — the workflow runs tests and build today, but frontend lint has open errors and `main` has no branch protection, so a red run reports rather than blocks
+- [ ] Gating merges on CI — the workflow runs lint, tests and build on every push, but `main` has no branch protection rule, so a red run reports rather than blocks
 
 ## Known limitations
 
