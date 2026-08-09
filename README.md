@@ -22,6 +22,10 @@ Click "Continue as Guest" on the login page. There's no real account system: gue
 
 The backend runs on Render's free tier, which sleeps when idle. If the first load hangs, give it 30 to 60 seconds to cold-start.
 
+## Demo video
+
+[Watch a walkthrough of the app](https://www.loom.com/share/bf44be02adef471695fb26869551ea1c) — 1 minute 19 seconds, no sign-in needed.
+
 ## Screenshots
 
 Taken against the deployed app with the shared guest account, so what's shown here is what you get by clicking "Continue as Guest" on the live demo.
