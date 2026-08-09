@@ -14,14 +14,24 @@ name: Keep demo awake
 #    no commits. Push anything, or re-enable it from the Actions tab, if the
 #    repo goes quiet for that long.
 #
-# Keeping the service awake consumes Render's free instance-hour allowance,
-# since it no longer idles. Check that allowance before leaving this on.
+# Keeping the service awake spends Render's free instance-hour allowance,
+# which is 750 hours per calendar month across the whole workspace — not per
+# service. Run out and Render suspends every Free web service until the next
+# month, which is a far worse outcome than the cold starts this avoids.
+#
+# Pinging around the clock costs 744 hours in a 31-day month. That fits, but
+# with six hours to spare and nothing left for the other services sharing the
+# workspace. So this deliberately only runs during waking hours.
 
 on:
   schedule:
-    # Every 10 minutes, deliberately offset from the top of the hour — that's
-    # when GitHub's scheduler is busiest and delays are worst.
-    - cron: '3,13,23,33,43,53 * * * *'
+    # Every 10 minutes between 02:00 and 18:59 UTC — 07:30 to 00:29 IST, which
+    # covers any realistic time someone opens the demo. 17 hours a day is
+    # about 527 instance-hours in a 31-day month, leaving roughly 220 spare.
+    #
+    # Minutes are offset off the hour because GitHub's scheduler is busiest
+    # there and delays are worst. Hours are UTC — cron here has no timezone.
+    - cron: '3,13,23,33,43,53 2-18 * * *'
   workflow_dispatch:
 
 permissions:
