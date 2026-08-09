@@ -15,14 +15,20 @@ const TASK_INCLUDE = {
   assignees: true,
   labels: true,
   subtasks: true,
-  comments: { include: { author: true }, orderBy: { createdAt: 'asc' as const } },
+  comments: {
+    include: { author: true },
+    orderBy: { createdAt: 'asc' as const },
+  },
 };
 
-type TaskWithRelations = Prisma.TaskGetPayload<{ include: typeof TASK_INCLUDE }>;
+type TaskWithRelations = Prisma.TaskGetPayload<{
+  include: typeof TASK_INCLUDE;
+}>;
 
 // Only these fields get an activity log entry — matches what the Figma's
 // "Updates" panel actually shows, not every editable field on Task.
-type TrackedField = 'status' | 'priority' | 'startDate' | 'dueDate' | 'assignee';
+type TrackedField =
+  'status' | 'priority' | 'startDate' | 'dueDate' | 'assignee';
 
 @Injectable()
 export class TasksService {
@@ -158,31 +164,55 @@ export class TasksService {
     }[] = [];
 
     if (before.status !== after.status) {
-      entries.push({ field: 'status', oldValue: before.status, newValue: after.status });
+      entries.push({
+        field: 'status',
+        oldValue: before.status,
+        newValue: after.status,
+      });
     }
     if (before.priority !== after.priority) {
-      entries.push({ field: 'priority', oldValue: before.priority, newValue: after.priority });
+      entries.push({
+        field: 'priority',
+        oldValue: before.priority,
+        newValue: after.priority,
+      });
     }
 
     const beforeStart = before.startDate?.toISOString() ?? null;
     const afterStart = after.startDate?.toISOString() ?? null;
     if (beforeStart !== afterStart) {
-      entries.push({ field: 'startDate', oldValue: beforeStart, newValue: afterStart });
+      entries.push({
+        field: 'startDate',
+        oldValue: beforeStart,
+        newValue: afterStart,
+      });
     }
 
     const beforeDue = before.dueDate?.toISOString() ?? null;
     const afterDue = after.dueDate?.toISOString() ?? null;
     if (beforeDue !== afterDue) {
-      entries.push({ field: 'dueDate', oldValue: beforeDue, newValue: afterDue });
+      entries.push({
+        field: 'dueDate',
+        oldValue: beforeDue,
+        newValue: afterDue,
+      });
     }
 
-    const beforeAssigneeIds = before.assignees.map((a) => a.id).sort().join(',');
-    const afterAssigneeIds = after.assignees.map((a) => a.id).sort().join(',');
+    const beforeAssigneeIds = before.assignees
+      .map((a) => a.id)
+      .sort()
+      .join(',');
+    const afterAssigneeIds = after.assignees
+      .map((a) => a.id)
+      .sort()
+      .join(',');
     if (beforeAssigneeIds !== afterAssigneeIds) {
       entries.push({
         field: 'assignee',
-        oldValue: before.assignees.map((a) => a.name ?? a.email).join(', ') || null,
-        newValue: after.assignees.map((a) => a.name ?? a.email).join(', ') || null,
+        oldValue:
+          before.assignees.map((a) => a.name ?? a.email).join(', ') || null,
+        newValue:
+          after.assignees.map((a) => a.name ?? a.email).join(', ') || null,
       });
     }
 

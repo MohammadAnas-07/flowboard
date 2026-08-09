@@ -146,7 +146,8 @@ export function ListView({
               onClick={() =>
                 setCollapsed((prev) => {
                   const next = new Set(prev);
-                  next.has(status) ? next.delete(status) : next.add(status);
+                  if (next.has(status)) next.delete(status);
+                  else next.add(status);
                   return next;
                 })
               }

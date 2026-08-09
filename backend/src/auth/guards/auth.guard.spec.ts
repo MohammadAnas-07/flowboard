@@ -9,7 +9,9 @@ import { AuthGuard } from './auth.guard';
 // not the frontend's presence-only redirect check — worth testing directly
 // with everything it touches (JwtService, PrismaService) mocked out.
 function buildContext(cookies: Record<string, string> = {}) {
-  const request: { cookies: Record<string, string>; user?: unknown } = { cookies };
+  const request: { cookies: Record<string, string>; user?: unknown } = {
+    cookies,
+  };
   return {
     getHandler: () => ({}),
     getClass: () => ({}),
@@ -47,14 +49,18 @@ describe('AuthGuard', () => {
   it('rejects when there is no session cookie', async () => {
     const context = buildContext();
 
-    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('rejects when the JWT fails verification', async () => {
     jwtService.verifyAsync.mockRejectedValue(new Error('bad signature'));
     const context = buildContext({ [AUTH_COOKIE_NAME]: 'garbage-token' });
 
-    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('rejects when the JWT is valid but the user no longer exists', async () => {
@@ -62,7 +68,9 @@ describe('AuthGuard', () => {
     prisma.user.findUnique.mockResolvedValue(null);
     const context = buildContext({ [AUTH_COOKIE_NAME]: 'valid-token' });
 
-    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('allows the request through and attaches the user when the token and user are both valid', async () => {

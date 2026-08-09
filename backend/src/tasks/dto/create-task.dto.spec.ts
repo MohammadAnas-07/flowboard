@@ -49,22 +49,34 @@ describe('CreateTaskDto', () => {
   });
 
   it('rejects a priority value outside the Priority enum', async () => {
-    const errors = await validateDto({ title: 'Task', priority: 'SUPER_URGENT' });
+    const errors = await validateDto({
+      title: 'Task',
+      priority: 'SUPER_URGENT',
+    });
     expect(errors.some((e) => e.property === 'priority')).toBe(true);
   });
 
   it('rejects a non-UUID projectId', async () => {
-    const errors = await validateDto({ title: 'Task', projectId: 'not-a-uuid' });
+    const errors = await validateDto({
+      title: 'Task',
+      projectId: 'not-a-uuid',
+    });
     expect(errors.some((e) => e.property === 'projectId')).toBe(true);
   });
 
   it('rejects a non-ISO8601 dueDate', async () => {
-    const errors = await validateDto({ title: 'Task', dueDate: '15th of January' });
+    const errors = await validateDto({
+      title: 'Task',
+      dueDate: '15th of January',
+    });
     expect(errors.some((e) => e.property === 'dueDate')).toBe(true);
   });
 
   it('rejects a non-UUID entry inside assigneeIds', async () => {
-    const errors = await validateDto({ title: 'Task', assigneeIds: ['not-a-uuid'] });
+    const errors = await validateDto({
+      title: 'Task',
+      assigneeIds: ['not-a-uuid'],
+    });
     expect(errors.some((e) => e.property === 'assigneeIds')).toBe(true);
   });
 });

@@ -20,17 +20,23 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(
-      IS_PUBLIC_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (isPublic) {
       return true;
     }
 
-    const request = context
-      .switchToHttp()
-      .getRequest<Request & { user: AuthUser }>();
+    // Express types `cookies` as `any`, which makes the token read below an
+    // unsafe assignment. Intersecting isn't enough (any & T is still any), so
+    // Omit it off the base type first, then re-add it properly typed.
+    const request = context.switchToHttp().getRequest<
+      Omit<Request, 'cookies'> & {
+        user: AuthUser;
+        cookies?: Record<string, string | undefined>;
+      }
+    >();
     const token: string | undefined = request.cookies?.[AUTH_COOKIE_NAME];
 
     if (!token) {

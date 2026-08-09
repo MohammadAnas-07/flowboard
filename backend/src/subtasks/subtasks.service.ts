@@ -31,9 +31,7 @@ export class SubtasksService {
       include: { assignees: true },
     });
     if (!subtask) {
-      throw new NotFoundException(
-        `Subtask ${id} not found on task ${taskId}`,
-      );
+      throw new NotFoundException(`Subtask ${id} not found on task ${taskId}`);
     }
     return subtask;
   }

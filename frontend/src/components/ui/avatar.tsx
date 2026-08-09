@@ -23,8 +23,12 @@ export function Avatar({
   size?: keyof typeof SIZES;
 }) {
   if (user.avatar) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // next/image is deliberately not used here: user.avatar is an arbitrary
+      // URL off the User row, and next/image would need every possible host
+      // whitelisted in images.remotePatterns or it throws at runtime. Avatars
+      // are ~24-40px, so the optimization this gives up is negligible.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={user.avatar}
         alt={user.name ?? user.email}
