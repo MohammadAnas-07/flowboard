@@ -1,0 +1,64 @@
+name: Restore demo data
+
+# Manual only — never on push, and never on a schedule. This writes to the
+# live database, so it runs when someone decides it should, not as a side
+# effect of committing.
+#
+# Safe to run any time: the seed looks every project and task up by name
+# before inserting, so it only recreates what's missing. It never edits or
+# deletes rows a visitor added.
+on:
+  workflow_dispatch:
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+
+    env:
+      # Repository secret. Point it at the same Neon connection string the
+      # Render service uses, or the seed will quietly populate a different
+      # database and the live demo won't change.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Fail early if the secret is missing
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is not set on this repository."
+            echo "Add it under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Restore demo projects and tasks
+        working-directory: backend
+        run: npm run prisma:seed
+
+      # Proves the data is actually readable through the deployed API, rather
+      # than trusting the seed's own success message. Render's free tier
+      # sleeps, so the first call may take up to a minute to cold-start.
+      - name: Verify through the live API
+        run: |
+          API=https://flowboard-api-9074.onrender.com
+          curl -sS -c cookies.txt -X POST "$API/api/auth/guest" -o /dev/null --max-time 120
+          COUNT=$(curl -sS -b cookies.txt "$API/api/tasks" --max-time 60 | node -e "
+            let d='';
+            process.stdin.on('data', c => d += c).on('end', () => {
+              try { console.log(JSON.parse(d).length); } catch { console.log(0); }
+            });")
+          echo "Tasks visible through the API: $COUNT"
+          if [ "$COUNT" -lt 15 ]; then
+            echo "Expected at least 15 tasks after a restore."
+            exit 1
+          fi
