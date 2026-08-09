@@ -24,7 +24,27 @@ The backend runs on Render's free tier, which sleeps when idle. If the first loa
 
 ## Screenshots
 
-<!-- TODO: add screenshots of the deployed app here, see Task-Flow's README screenshots/ folder pattern -->
+Taken against the deployed app with the shared guest account, so what's shown here is what you get by clicking "Continue as Guest" on the live demo.
+
+**Board view** — tasks grouped by status, dragged between columns with `@dnd-kit`. The move persists on drop, so a refresh keeps the new column.
+
+![Kanban board showing tasks grouped by status](screenshots/board.png)
+
+**Projects** — every project with its priority, lead and due date, plus how far along its tasks are.
+
+![Projects list](screenshots/projects.png)
+
+**Task list** — the same tasks as a filterable table. Status and priority filters combine rather than replace each other.
+
+![Task list view with filters](screenshots/tasks.png)
+
+**Task detail** — description, due dates, labels, assignees, subtasks with their own status, and a comment thread.
+
+![Task detail with subtasks and comments](screenshots/task-detail.png)
+
+**Settings** — light/dark mode and an accent colour that's independent of the theme, both persisted to `localStorage`.
+
+![Settings page with theme and accent controls](screenshots/settings.png)
 
 ## Tech stack
 
