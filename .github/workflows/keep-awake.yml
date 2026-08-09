@@ -1,0 +1,55 @@
+name: Keep demo awake
+
+# Render's free tier sleeps after ~15 minutes idle, and waking it costs the
+# next visitor 20-60 seconds on a blank screen. Pinging the health check
+# keeps it warm so a recruiter opening the live demo gets it immediately.
+#
+# Two caveats worth knowing rather than discovering:
+#
+# 1. GitHub's scheduler is best-effort. A run can be delayed past the 15
+#    minute sleep window under load, so this reduces cold starts rather than
+#    eliminating them. An external monitor is more punctual; this is the
+#    zero-signup version and the two can run side by side.
+# 2. GitHub disables scheduled workflows in public repos after 60 days with
+#    no commits. Push anything, or re-enable it from the Actions tab, if the
+#    repo goes quiet for that long.
+#
+# Keeping the service awake consumes Render's free instance-hour allowance,
+# since it no longer idles. Check that allowance before leaving this on.
+
+on:
+  schedule:
+    # Every 10 minutes, deliberately offset from the top of the hour — that's
+    # when GitHub's scheduler is busiest and delays are worst.
+    - cron: '3,13,23,33,43,53 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+
+    steps:
+      - name: Ping the API health check
+        run: |
+          URL=https://flowboard-api-9074.onrender.com/health
+
+          # Three attempts with a long timeout: a cold start can legitimately
+          # take a minute and returns 502 from Render's proxy while it boots.
+          # Only a service that fails all three is actually down, which keeps
+          # the failure email meaningful instead of routine.
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$URL" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "Health check OK on attempt $attempt."
+              exit 0
+            fi
+            echo "Attempt $attempt returned HTTP $code."
+            [ "$attempt" -lt 3 ] && sleep 20
+          done
+
+          echo "Health check failed three times — the API looks genuinely down."
+          exit 1
