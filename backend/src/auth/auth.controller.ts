@@ -1,4 +1,12 @@
-import { Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
@@ -11,7 +19,13 @@ const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // 10 requests per 15 minutes per IP (configured in AppModule). This route
+  // is unauthenticated and does real work on every call — a DB find-or-create
+  // plus a JWT signature — so it's the obvious thing to hammer. Apply the
+  // same @UseGuards(ThrottlerGuard) to the Google OAuth callback when that
+  // lands; it'll be unauthenticated and public for the same reasons.
   @Public()
+  @UseGuards(ThrottlerGuard)
   @Post('guest')
   @HttpCode(200)
   async guestLogin(@Res({ passthrough: true }) res: Response) {
