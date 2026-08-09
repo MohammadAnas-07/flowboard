@@ -215,7 +215,7 @@ const DEMO_PROJECTS: DemoProject[] = [
     ],
   },
   {
-    name: 'Q3 Marketing Site',
+    name: 'Q4 Marketing Site',
     priority: Priority.MEDIUM,
     dueIn: 56,
     tasks: [

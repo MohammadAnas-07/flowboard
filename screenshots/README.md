@@ -2,13 +2,15 @@
 
 Images referenced by the root `README.md`. Filenames are fixed — the README links to these exact names, so save with the name in the left column or the image won't render.
 
-| Filename | Page | What should be visible |
+| Filename | Where | What should be visible |
 | --- | --- | --- |
-| `board.png` | `/projects/<id>` | The Kanban board with all five columns populated. This is the hero image — make it the widest, cleanest shot. |
+| `board.png` | `/tasks`, **Board** toggle (top right) | All five columns — Backlog, To Do, Doing, Completed, On Hold. The board scrolls horizontally, so scroll fully left before capturing or Backlog gets cut off. |
 | `projects.png` | `/projects` | All three projects with priority, lead and due date. |
-| `tasks.png` | `/tasks` | List view with a status or priority filter visibly applied. |
-| `task-detail.png` | `/tasks/<id>` | Open "Webhook retry + idempotency handling" — it has 4 subtasks, 3 comments, 2 labels and a resource link, so the page looks full. |
-| `settings.png` | `/settings` | Theme and accent colour controls. |
+| `tasks.png` | `/tasks`, **List** toggle | Status groups with rows fully visible, not sliced mid-row. |
+| `task-detail.png` | `/tasks/<id>` | Open **Webhook retry + idempotency handling** — 4 subtasks, 3 comments, 2 labels and a resource link. Other tasks have empty subtask and comment sections. |
+| `settings.png` | `/settings` | Profile, Theme or Color tab. |
+
+The Kanban board lives at `/tasks` behind the List/Board toggle, not on the project detail page — `/projects/<id>` renders a list view only.
 
 ## Capture notes
 
@@ -17,3 +19,4 @@ Images referenced by the root `README.md`. Filenames are fixed — the README li
 - PNG, not JPG — screenshots of UI compress badly as JPG and text goes fuzzy.
 - Keep each file under about 500 KB so the README stays quick to load. Resize to 1440px wide if a shot comes out larger.
 - Light mode for all five keeps the set consistent. If you want to show dark mode, add it as a sixth image rather than mixing themes across the set.
+- Project names appear in several views, so re-capture the affected shots after any rename in the seed data.

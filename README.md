@@ -42,7 +42,7 @@ Taken against the deployed app with the shared guest account, so what's shown he
 
 ![Task detail with subtasks and comments](screenshots/task-detail.png)
 
-**Settings** — light/dark mode and an accent colour that's independent of the theme, both persisted to `localStorage`.
+**Settings** — profile and appearance, with separate Theme and Color tabs. Guest mode says plainly which fields are cosmetic instead of pretending the edits persist.
 
 ![Settings page with theme and accent controls](screenshots/settings.png)
 
