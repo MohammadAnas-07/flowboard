@@ -3,12 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import {
+  notifyStoredPreferenceChange,
+  useHasHydrated,
+  useStoredPreference,
+} from '@/lib/stored-preference';
 import type { User } from '@/lib/types';
 import { ChecklistIcon, ChevronLeftIcon, ChevronRightIcon, FolderIcon, MenuIcon, XIcon } from './icons';
 import LogoutButton from './logout-button';
 import { UserMenu } from './user-menu';
 
 const COLLAPSE_KEY = 'flowboard:sidebar-collapsed';
+
+function parseCollapsed(raw: string | null): boolean {
+  return raw === 'true';
+}
 
 const NAV_ITEMS = [
   { href: '/tasks', label: 'Tasks', icon: ChecklistIcon },
@@ -17,19 +26,14 @@ const NAV_ITEMS = [
 
 export function Sidebar({ user }: { user: User }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const collapsed = useStoredPreference(COLLAPSE_KEY, parseCollapsed, false);
+  const hydrated = useHasHydrated();
   // Below md (768px) the sidebar isn't a persistent rail at all — it's an
   // off-canvas drawer opened via a hamburger button, closed by default.
   // `collapsed` (the icon-only rail) is a desktop-only concept; on mobile
   // the drawer is always shown full-width when open, regardless of the
   // desktop collapse preference.
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === 'true');
-    setHydrated(true);
-  }, []);
 
   // Lock background scroll while the mobile drawer is open — it renders on
   // top of the page as an overlay, so the page shouldn't scroll behind it.
@@ -43,11 +47,10 @@ export function Sidebar({ user }: { user: User }) {
   }, [mobileOpen]);
 
   function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(COLLAPSE_KEY, String(next));
-      return next;
-    });
+    // localStorage is the source of truth now, so write first and let the
+    // subscription push the new value back into render.
+    localStorage.setItem(COLLAPSE_KEY, String(!collapsed));
+    notifyStoredPreferenceChange();
   }
 
   // Avoid a flash of the wrong width before localStorage is read. Nothing

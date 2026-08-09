@@ -69,6 +69,14 @@ jobs:
         working-directory: backend
         run: npx prisma migrate deploy
 
+      # --max-warnings 0 so a warning can't quietly accumulate into the
+      # baseline. `npm run lint` is not used here: both packages define it
+      # with --fix, which would mask a failure by rewriting the file instead
+      # of reporting it.
+      - name: Lint backend
+        working-directory: backend
+        run: npx eslint "{src,apps,libs,test}/**/*.ts" --max-warnings 0
+
       - name: Run unit tests
         working-directory: backend
         run: npm test
@@ -80,6 +88,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npx eslint . --max-warnings 0
 
       # Catches TypeScript and build errors before Vercel does.
       - name: Build frontend

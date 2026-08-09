@@ -1,3 +1,6 @@
+'use client';
+
+import { useSyncExternalStore } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { PRIORITY_LABELS, STATUS_LABELS, type Priority, type Status } from '@/lib/types';
 
@@ -26,10 +29,29 @@ export function StatusBadge({ status }: { status: Status }) {
   return <Badge>{STATUS_LABELS[status]}</Badge>;
 }
 
+// "Now" isn't a pure render input — server and client read it at different
+// moments and would disagree on first paint. useSyncExternalStore keeps the
+// read outside render: the server snapshot is null so nothing renders as
+// overdue, and hydration fills in the real value. The snapshot is midnight,
+// so repeated calls return the same number and don't re-render in a loop.
+const subscribeToNothing = () => () => {};
+
+function useStartOfToday(): number | null {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => new Date().setHours(0, 0, 0, 0),
+    () => null,
+  );
+}
+
 export function DueDateBadge({ dueDate }: { dueDate: string | null }) {
+  const startOfToday = useStartOfToday();
   if (!dueDate) return null;
   const date = new Date(dueDate);
-  const overdue = date.getTime() < Date.now();
+  // Day-granular: a task due later today isn't overdue yet. Comparing against
+  // the exact current instant would make the badge flip mid-session and
+  // couldn't be read outside render without re-rendering on every tick.
+  const overdue = startOfToday !== null && date.getTime() < startOfToday;
   return (
     <Badge className={overdue ? 'border-red-200 text-red-600 dark:border-red-900 dark:text-red-400' : ''}>
       {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
