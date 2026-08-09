@@ -132,14 +132,21 @@ export function ListView({
   const columns = buildColumns(visibleFields, onDeleteTask);
 
   return (
-    <div className="flex flex-col gap-4 overflow-y-auto p-4">
+    // min-h-0 lets this shrink below its content inside the page's flex
+    // column — without it the scroll container is never shorter than what it
+    // holds, so overflow-y-auto has nothing to scroll.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
       {ALL_STATUSES.map((status) => {
         const sectionTasks = tasks.filter((t) => t.status === status);
         const isCollapsed = collapsed.has(status);
+        // shrink-0 is what actually makes the list scrollable: as flex items
+        // these cards default to shrinking, so a long list squeezed every
+        // group down instead of overflowing, and overflow-hidden then clipped
+        // the rows with no way to reach them.
         return (
           <div
             key={status}
-            className="overflow-hidden rounded-lg border border-black/[.08] dark:border-white/[.145]"
+            className="shrink-0 overflow-hidden rounded-lg border border-black/[.08] dark:border-white/[.145]"
           >
             <button
               type="button"
