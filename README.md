@@ -26,7 +26,7 @@ The backend runs on Render's free tier, which sleeps when idle. If the first loa
 
 Taken against the deployed app with the shared guest account, so what's shown here is what you get by clicking "Continue as Guest" on the live demo.
 
-**Board view** — tasks grouped by status, dragged between columns with `@dnd-kit`. The move persists on drop, so a refresh keeps the new column.
+**Board view** — tasks grouped by status, dragged between columns with `@dnd-kit`. The move persists on drop, so a refresh keeps the new column. Backlog has no column by design — backlog tasks exist before the board and show up in the list view instead ([architecture.md](architecture.md) Section 7).
 
 ![Kanban board showing tasks grouped by status](screenshots/board.png)
 
@@ -36,7 +36,7 @@ Taken against the deployed app with the shared guest account, so what's shown he
 
 **Task list** — the same tasks as a filterable table. Status and priority filters combine rather than replace each other.
 
-![Task list view with filters](screenshots/tasks.png)
+![Task list view grouped by status](screenshots/tasks.png)
 
 **Task detail** — description, due dates, labels, assignees, subtasks with their own status, and a comment thread.
 
@@ -44,7 +44,7 @@ Taken against the deployed app with the shared guest account, so what's shown he
 
 **Settings** — profile and appearance, with separate Theme and Color tabs. Guest mode says plainly which fields are cosmetic instead of pretending the edits persist.
 
-![Settings page with theme and accent controls](screenshots/settings.png)
+![Settings page showing the guest profile form](screenshots/settings.png)
 
 ## Tech stack
 
