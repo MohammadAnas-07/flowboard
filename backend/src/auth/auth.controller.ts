@@ -19,7 +19,7 @@ const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // 10 requests per 15 minutes per IP (configured in AppModule). This route
+  // 100 requests per 15 minutes per IP (configured in AppModule). This route
   // is unauthenticated and does real work on every call — a DB find-or-create
   // plus a JWT signature — so it's the obvious thing to hammer. Apply the
   // same @UseGuards(ThrottlerGuard) to the Google OAuth callback when that

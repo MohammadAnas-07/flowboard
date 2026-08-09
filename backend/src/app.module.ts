@@ -16,13 +16,22 @@ import { TasksModule } from './tasks/tasks.module';
   imports: [
     // Rate limiting for unauthenticated auth routes. Deliberately NOT wired
     // up as a global APP_GUARD: GET /api/auth/me runs on every server render
-    // of the (app) layout, so a 10-per-15-minutes cap applied globally would
-    // break normal navigation after a handful of page loads. It's opted into
-    // per route instead — see AuthController.
+    // of the (app) layout, so a cap this size applied globally would break
+    // normal navigation. It's opted into per route instead — see
+    // AuthController.
+    //
+    // 100 rather than a tighter number because of how the frontend talks to
+    // this API. next.config.ts rewrites /api/* through Vercel so the session
+    // cookie stays first-party, which means every legitimate login reaches
+    // Render from a Vercel egress IP rather than the end user's. Per-IP
+    // limiting therefore buckets all real users together, and a low cap would
+    // let one visitor lock out the rest. Someone hammering the Render URL
+    // directly is still counted against their own IP, which is the path that
+    // actually matters for abuse.
     ThrottlerModule.forRoot([
       {
         ttl: 15 * 60 * 1000, // 15 minutes, in ms
-        limit: 10,
+        limit: 100,
       },
     ]),
     PrismaModule,
