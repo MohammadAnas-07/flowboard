@@ -1,5 +1,14 @@
 # Flowboard
 
+[![CI](https://github.com/MohammadAnas-07/flowboard/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammadAnas-07/flowboard/actions/workflows/ci.yml)
+[![Deployed](https://img.shields.io/badge/deployed-live-brightgreen)](https://flowboard-zeta-eight.vercel.app)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![NestJS](https://img.shields.io/badge/NestJS-11-e0234e)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)
+
 A task and project board built for the AbleSpace Full Stack Developer (Fresher) technical assessment. Create projects, add tasks with a status and priority, drag them across a Kanban board or work from a list view, break tasks into subtasks, comment on them, and filter the list/board by status or priority.
 
 This repo is Part 1 (the build). Part 2 is the product-understanding submission, not written yet. It'll be linked here once it exists, either as a `PART2.md` in this repo or a Google Doc/video link.

@@ -1,0 +1,87 @@
+name: CI
+
+# Runs on every branch push, not just main, so a feature branch is verified
+# before it gets merged — the repo merges locally with --no-ff rather than
+# through GitHub PRs, so a main-only push trigger would never catch a break
+# until it was already on main. The pull_request trigger covers the case
+# where a change does arrive as a PR.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Linux to match production: the API runs on Render and the frontend builds
+  # on Vercel, both Linux. Prisma in particular resolves a platform-specific
+  # query engine binary at generate time, so a Windows or macOS runner would
+  # be exercising a different binary than the one that actually ships.
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # The e2e suite boots the real AppModule, and PrismaService.$connect()
+    # runs in onModuleInit — so it needs a reachable Postgres, not a mock.
+    # A throwaway service container keeps that off the live Neon database.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flowboard_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flowboard_test
+      # Test-only value. The real secret lives in Render's env config and is
+      # never needed here — nothing in CI issues a token that outlives the job.
+      JWT_SECRET: ci-test-secret-not-used-in-production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+
+      # Creates the schema in the service container so $connect() has a real
+      # database to attach to. Uses the committed migrations, which also means
+      # a broken or missing migration fails CI rather than surfacing on deploy.
+      - name: Apply database migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Run unit tests
+        working-directory: backend
+        run: npm test
+
+      - name: Run e2e tests
+        working-directory: backend
+        run: npm run test:e2e
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # Catches TypeScript and build errors before Vercel does.
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
