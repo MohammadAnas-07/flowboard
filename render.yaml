@@ -7,6 +7,15 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /health
+    # Without this, any push to main rebuilds the API — including a README
+    # edit, which takes the service down for a few minutes on the free tier
+    # for no reason. Paths are relative to the repo root, not rootDir, and an
+    # ignored path wins over an included one.
+    buildFilter:
+      paths:
+        - "backend/**"
+      ignoredPaths:
+        - "**/*.md"
     envVars:
       - key: DATABASE_URL
         sync: false
